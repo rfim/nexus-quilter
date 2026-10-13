@@ -1,0 +1,29 @@
+product:     marketing_acquisition_monthly
+department:  Marketing
+owner:       marketing-performance-lead@example.com
+engineer:    vim@example.com
+question:    "Which channel brings new clients, at what cost?"
+definition:  >
+  New clients = clients whose first account opened in the month.
+  Cost per acquisition = channel spend / new clients.
+grain:       [month, channel]
+
+freshness:
+  column:    month
+  max_lag_days: 35
+
+columns:
+  - name:  channel
+    tests: [not_null, {accepted_values: [Quilter adviser, Independent adviser, Direct]}]
+  - name:  new_clients
+    tests: [not_null, {range: {min: 0}}]
+  - name:  cost_per_acquisition_gbp
+    tests: [{range: {min: 0, max: 20000}}]
+
+privacy:
+  no_client_level_columns: true   # campaign questions never need a named client
+
+access:
+  read:      [grp_marketing, grp_exec_mi]
+change:
+  breaking:  owner_approval

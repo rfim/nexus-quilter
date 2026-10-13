@@ -1,0 +1,38 @@
+# Databricks Asset Bundle: the same package runs locally (scripts/build.sh) and as a Databricks job.
+bundle:
+  name: nexus-quilter
+
+variables:
+  catalog:
+    default: nexus
+
+resources:
+  jobs:
+    nexus_daily:
+      name: nexus-daily
+      tags: {owning_team: data-platform, workload: transform}
+      health:
+        rules: [{metric: RUN_DURATION_SECONDS, op: GREATER_THAN, value: 2700}]
+      email_notifications:
+        on_failure: [vim@example.com]
+      schedule:
+        quartz_cron_expression: "0 30 5 ? * MON-FRI"
+        timezone_id: Europe/London
+      tasks:
+        - task_key: pipeline
+          python_wheel_task: {package_name: nexus, entry_point: pipeline}
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec: {client: "2", dependencies: [pyyaml]}
+      parameters:
+        - {name: NEXUS_CATALOG, default: "${var.catalog}"}
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production
+    variables:
+      catalog: nexus

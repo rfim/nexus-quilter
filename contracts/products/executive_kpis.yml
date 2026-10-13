@@ -1,0 +1,32 @@
+product:     executive_kpis_monthly
+department:  Executive
+owner:       chief-data-officer@example.com
+engineer:    vim@example.com
+question:    "One number per question, and can we trust it?"
+definition:  >
+  AUA = account value at month end (opening value plus cumulative flows).
+  Net Flows uses the Finance definition. Active clients = clients holding
+  at least one account at month end.
+grain:       [month]
+
+freshness:
+  column:    month
+  max_lag_days: 35
+
+columns:
+  - name:  aua_gbp
+    tests: [not_null, {range: {min: 0}}]
+  - name:  net_flows_gbp
+    tests: [not_null]
+  - name:  active_clients
+    tests: [not_null, {range: {min: 0}}]
+
+reconcile_to_product:
+  product:   finance_net_flows_daily     # same number in every deck: exec flows = finance flows
+  measure:   net_flows_gbp
+  tolerance_gbp: 0.01
+
+access:
+  read:      [grp_exec_mi, grp_board_pack]
+change:
+  breaking:  owner_approval

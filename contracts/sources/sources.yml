@@ -1,0 +1,77 @@
+# Source contracts: the whole interface to the platform. Adding a feed is a change here and nowhere else.
+- feed: platform_transactions
+  domain: platform
+  owner: platform-data@example.com
+  source: {type: cdc, feed: platform_transactions}       # Event Hubs / Kafka on Databricks
+  target: {table: platform_transaction, merge_keys: [transaction_id], ordering_key: cdc_lsn}
+  sla: {trigger: "5 minutes", budget_minutes: 12}
+  quality:
+    on_failure: quarantine
+    rules:
+      transaction_id_present: "transaction_id IS NOT NULL"
+      type_known: "transaction_type IN ('contribution','withdrawal','switch_in','switch_out','fee','income')"
+      isin_shape: "isin RLIKE '^[A-Z]{2}[A-Z0-9]{9}[0-9]$'"
+      wrapper_known: "wrapper_code IN ('ISA','JISA','PENSION','GIA','BOND')"
+      amount_nonzero: "amount_gbp <> 0"
+      trade_not_future: "trade_date <= DATE'2026-09-30'"
+  governance: {data_class: transaction}
+
+- feed: clients
+  domain: platform
+  owner: client-data@example.com
+  source: {type: cdc, feed: clients}
+  target: {table: client, merge_keys: [client_id]}
+  governance:
+    data_class: client_record
+    pii: {email: email, national_insurance_no: ni_number, vulnerable: vulnerability}
+
+- feed: accounts
+  domain: platform
+  owner: client-data@example.com
+  source: {type: cdc, feed: accounts}
+  target: {table: account, merge_keys: [account_id]}
+  governance: {data_class: client_record}
+
+- feed: funds
+  domain: investments
+  owner: fund-data@example.com
+  source: {type: autoloader, feed: funds}                 # fund-manager file drop
+  target: {table: fund, merge_keys: [isin]}
+  governance: {data_class: reference}
+
+- feed: fund_charges
+  domain: investments
+  owner: fund-data@example.com
+  source: {type: autoloader, feed: fund_charges}
+  target: {table: fund_charge, merge_keys: [isin, effective_from]}
+  governance: {data_class: reference}
+
+- feed: finance_ledger
+  domain: finance
+  owner: finance-reporting-lead@example.com
+  source: {type: adf, feed: finance_ledger}               # nightly ADF extract from the ledger
+  target: {table: finance_ledger, merge_keys: [trade_date, wrapper_code]}
+  governance: {data_class: financial}
+
+- feed: service_journeys
+  domain: servicing
+  owner: servicing-data@example.com
+  source: {type: cdc, feed: service_journeys}
+  target: {table: service_journey, merge_keys: [journey_id]}
+  governance: {data_class: client_record}
+
+- feed: colleagues
+  domain: hr
+  owner: people-data@example.com
+  source: {type: adf, feed: colleagues}
+  target: {table: colleague, merge_keys: [colleague_id]}
+  governance:
+    data_class: employee_record
+    pii: {full_name: name}
+
+- feed: marketing_spend
+  domain: marketing
+  owner: marketing-ops@example.com
+  source: {type: adf, feed: marketing_spend}
+  target: {table: marketing_spend, merge_keys: [month, channel]}
+  governance: {data_class: commercial}

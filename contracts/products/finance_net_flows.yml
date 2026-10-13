@@ -1,0 +1,35 @@
+product:     finance_net_flows_daily
+department:  Finance
+owner:       finance-reporting-lead@example.com  # signs off the definition
+engineer:    vim@example.com                     # owns the pipeline
+question:    "What came in and went out today, and does it agree with the ledger?"
+definition:  >
+  Net Flows = sum(amount_gbp) over contributions (positive), withdrawals and
+  fees (negative). Switches between funds and income are excluded.
+grain:       [legal_entity, wrapper_code, trade_date]
+
+freshness:
+  column:    trade_date
+  max_lag_days: 1          # ready by 06:30 Europe/London, business days
+
+columns:
+  - name:  legal_entity
+    tests: [not_null, {accepted_values: [affluent, hnw]}]
+  - name:  wrapper_code
+    tests: [not_null, {accepted_values: [ISA, JISA, PENSION, GIA, BOND]}]
+  - name:  net_flows_gbp
+    tests: [not_null]
+  - name:  gross_inflows_gbp
+    tests: [{range: {min: 0}}]
+
+reconcile:
+  against:   finance_ledger
+  match_on:  [trade_date, wrapper_code]
+  measure:   net_flows_gbp
+  ledger_measure: ledger_net_flows_gbp
+  tolerance_gbp: 0.01
+
+access:
+  read:      [grp_finance, grp_exec_mi]
+change:
+  breaking:  owner_approval   # blast radius posted on the PR

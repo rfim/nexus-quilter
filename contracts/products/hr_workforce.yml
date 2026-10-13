@@ -1,0 +1,30 @@
+product:     hr_workforce_monthly
+department:  HR
+owner:       people-analytics-lead@example.com
+engineer:    vim@example.com
+question:    "Where are we losing people, and is it getting worse?"
+definition:  >
+  Headcount = colleagues employed at month end. Leavers (12m) = colleagues
+  whose last day fell in the trailing 12 months. Attrition = leavers / average headcount.
+grain:       [month, function]
+
+freshness:
+  column:    month
+  max_lag_days: 35
+
+columns:
+  - name:  function
+    tests: [not_null, {accepted_values: [Advice, Investments, Operations, Technology, Distribution]}]
+  - name:  headcount
+    tests: [not_null, {range: {min: 0}}]
+  - name:  attrition_rate_12m
+    tests: [{range: {min: 0, max: 1}}]
+
+privacy:
+  min_cell_size: {column: leavers_12m, size: 5}   # small groups are suppressed, never published
+  no_colleague_level_columns: true
+
+access:
+  read:      [grp_hr, grp_exec_mi]   # aggregates only; records stay with HR
+change:
+  breaking:  owner_approval

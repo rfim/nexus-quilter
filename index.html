@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXUS for Quilter · VIM</title>
+<meta name="description" content="An independent Lead Data Engineer portfolio by R. Firman Insan Muhammad (VIM): governed wealth data products on Databricks within Azure, data contracts per department, and the code that runs them.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <a class="brand" href="#top" aria-label="NEXUS for Quilter, back to top">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span><b>NEXUS</b> <span class="brand-for">for Quilter</span></span>
+  </a>
+  <nav aria-label="Primary">
+    <a href="#departments">Departments</a>
+    <a href="#contracts">Contracts</a>
+    <a href="#platform">Platform</a>
+    <a href="#team">Team</a>
+    <a href="https://github.com/rfim/nexus-quilter" class="nav-code">See the code ↗</a>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <svg class="hero-art" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#1fb25a" stop-opacity="0"/><stop offset=".5" stop-color="#1fb25a" stop-opacity=".9"/><stop offset="1" stop-color="#9be3b5" stop-opacity="0"/></linearGradient>
+    </defs>
+    <g class="rings">
+      <circle cx="930" cy="360" r="120"/><circle cx="930" cy="360" r="190"/><circle cx="930" cy="360" r="260"/>
+      <circle cx="930" cy="360" r="330"/><circle cx="930" cy="360" r="400"/>
+    </g>
+    <g class="flows" fill="none" stroke="url(#g1)">
+      <path d="M-50 520 C 250 380, 520 640, 1250 300"/><path d="M-50 560 C 300 420, 560 680, 1250 360"/>
+      <path d="M-50 600 C 340 470, 600 720, 1250 420"/>
+    </g>
+  </svg>
+  <div class="shell hero-inner">
+    <p class="presented">Presented to <b>Quilter</b> · Chief Data Office · Lead Data Engineer</p>
+    <h1 id="hero-title">NEXUS</h1>
+    <p class="hero-sub">Governed data products for every department, on Databricks within Azure</p>
+    <p class="hero-lede">I'm <b>VIM</b>, R. Firman Insan Muhammad, a Lead Data Engineer in London. For four years I have led the data platform at Lifepal, a regulated insurance marketplace. This site shows how I would serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every conversation with a department ends in a data contract, and every contract turns into tests that run on each load. The numbers below the fold come from a real run of the Databricks Python in this repository on synthetic wealth data.</p>
+    <div class="hero-cta">
+      <a class="button button-primary" href="#departments">See the departments <span>→</span></a>
+      <a class="button button-secondary" href="https://github.com/rfim/nexus-quilter">Read the code <span>↗</span></a>
+      <a class="button button-secondary" href="assets/Nexus_Quilter_VIM.pdf">Fireside deck (PDF) <span>↓</span></a>
+    </div>
+    <dl class="hero-stats" aria-label="Measured outcomes at Lifepal">
+      <div><dt>6h → 90m</dt><dd>nightly batch window</dd></div>
+      <div><dt>24h → &lt;5m</dt><dd>reporting latency</dd></div>
+      <div><dt>−60%</dt><dd>ad-hoc requests</dd></div>
+      <div><dt>$11k / $19k</dt><dd>monthly cost vs budget</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="results" class="section-pad" aria-labelledby="results-title">
+  <div class="shell">
+    <div class="section-index"><span>01 · Results</span><span>Measured at Lifepal</span></div>
+    <div class="split-heading">
+      <h2 id="results-title">Measured outcomes <em>at Lifepal</em></h2>
+      <p>These are the numbers I'm proudest of. Each one comes from job history or a query, so ask me how I got there. Lifepal is much smaller than Quilter's £157.4bn, but the methods carry over.</p>
+    </div>
+    <div class="kpis">
+      <article><b>6h → 90m</b><p>Nightly batch wall-clock. Median of 30 runs either side of the change.</p></article>
+      <article><b>99.7%</b><p>Lower reporting latency: 24 h to under 5 min on Kafka and Debezium CDC.</p></article>
+      <article><b>$11k</b><p>Monthly platform cost against a $19k projection, held for four quarters.</p></article>
+      <article><b>214 → 86</b><p>Ad-hoc report requests (90-day count) once one metric definition was served to everyone.</p></article>
+      <article><b>512</b><p>Automated quality assertions across 47 sources, with DQ ≥ 0.98 sustained.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="departments" class="departments section-pad" aria-labelledby="dept-title">
+  <div class="shell">
+    <div class="section-index section-index-light"><span>02 · Serving the business</span><span>Five departments, five questions</span></div>
+    <div class="split-heading">
+      <h2 id="dept-title">The departments <em>I serve</em></h2>
+      <p>These are the teams I work with most, and each asks a different question. I find out which decision it supports, agree the definition with the owner, and build one product they can trust. Click through: the charts come from synthetic data built by the PySpark in this repo.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Departments" id="dept-tabs"></div>
+    <div class="dept-panel" id="dept-panel" role="tabpanel"></div>
+  </div>
+</section>
+
+<section id="contracts" class="section-pad" aria-labelledby="contracts-title">
+  <div class="shell">
+    <div class="section-index"><span>03 · Data contracts</span><span>One YAML in, three artefacts out</span></div>
+    <div class="split-heading">
+      <h2 id="contracts-title">Agreements become <em>data contracts</em></h2>
+      <p>This is something I've always done: every agreement with a department ends up as a YAML contract. They own the definition; I own the platform that checks it. Pick a department to see its contract, the code generated from it, and how the last run went.</p>
+    </div>
+    <div class="chips" id="contract-chips" role="tablist" aria-label="Contracts"></div>
+    <div class="contract-grid">
+      <div class="contract-code">
+        <div class="code-tabs" role="tablist" aria-label="Contract artefacts">
+          <button role="tab" aria-selected="true" data-view="yaml">Contract (YAML)</button>
+          <button role="tab" aria-selected="false" data-view="expectations">→ Expectations</button>
+          <button role="tab" aria-selected="false" data-view="governance">→ Unity Catalog SQL</button>
+        </div>
+        <pre class="code" id="contract-code" tabindex="0"></pre>
+        <a class="code-link" id="contract-link" href="#">See the file on GitHub ↗</a>
+      </div>
+      <div class="contract-results">
+        <div class="result-head" id="result-head"></div>
+        <ol class="checks" id="checks"></ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="platform" class="platform section-pad" aria-labelledby="platform-title">
+  <div class="shell">
+    <div class="section-index section-index-light"><span>04 · Platform</span><span>From a real local run</span></div>
+    <div class="split-heading">
+      <h2 id="platform-title">How the pipeline <em>runs</em></h2>
+      <p>I ran the whole thing locally on Spark 4 with Delta Lake. Each stage below shows what happened in that run. Click one to read the function behind it; it's the same code a Databricks job would run.</p>
+    </div>
+    <ol class="stages" id="stages"></ol>
+    <div class="stage-detail" id="stage-detail"></div>
+    <div class="plane">
+      <span>Unity Catalog governance plane</span>
+      <b>Classify</b><b>Enforce</b><b>Trace</b><b>Measure</b>
+    </div>
+  </div>
+</section>
+
+<section id="team" class="section-pad" aria-labelledby="team-title">
+  <div class="shell">
+    <div class="section-index"><span>05 · Team and delivery</span><span>The First Light playbook</span></div>
+    <div class="split-heading">
+      <h2 id="team-title">First Light: <em>working under pressure</em></h2>
+      <p>My playbook for uncertain requirements, urgent demand or a short-staffed team: deliver the smallest piece of truth that helps today's decision, keep it reversible, write down the debt, and protect the team's focus. In short: ship the candle, build the lighthouse later.</p>
+    </div>
+    <div class="beliefs">
+      <article><span>1</span><h3>Light over perfection</h3><p>Perfect architecture delivered late illuminates nothing. Take the simplest reversible path that gives clarity today.</p></article>
+      <article><span>2</span><h3>Signal over noise</h3><p>Filter every request by the decision it enables today. What single decision does this data need to support?</p></article>
+      <article><span>3</span><h3>Sanctuary for execution</h3><p>Shield the team from ad hoc chaos and context switching. One clear focus produces real velocity.</p></article>
+    </div>
+    <div class="triage">
+      <div class="triage-intro">
+        <h3>Try the triage</h3>
+        <p>Pick a request. It lands where the playbook puts it, with the reason why.</p>
+        <ul class="requests" id="requests"></ul>
+      </div>
+      <div class="matrix" id="matrix" aria-live="polite">
+        <div class="q" data-q="do"><small>Urgent · important</small><b>Do first</b><p>Critical path and minimum viable truth only.</p></div>
+        <div class="q" data-q="schedule"><small>Important · not urgent</small><b>Schedule</b><p>Modelling, governance, debt logged during First Light.</p></div>
+        <div class="q" data-q="delegate"><small>Urgent · not important</small><b>Delegate</b><p>Certified metric views and the governed agent.</p></div>
+        <div class="q" data-q="eliminate"><small>Neither</small><b>Eliminate</b><p>No report without a decision attached.</p></div>
+      </div>
+    </div>
+    <p class="regulated"><b>In a regulated firm,</b> controls stay on. Classification, masking and the contract are code, so they take minutes. Client data leaving the boundary, a certified regulatory measure, an access grant or a widely used schema is always a one-way door, and goes to the lead and the data owner.</p>
+  </div>
+</section>
+
+<section id="ninety" class="ninety section-pad" aria-labelledby="ninety-title">
+  <div class="shell">
+    <div class="section-index section-index-light"><span>06 · First 90 days</span><span>Learning the domain first</span></div>
+    <h2 id="ninety-title">My first <em>90 days</em></h2>
+    <div class="phases">
+      <article><small>Days 1–30</small><h3>Listen and inventory</h3><p>Learn the domain from its owners and its data. Build a queryable record of what exists, what it feeds and who owns it, from catalog lineage. Change nothing.</p></article>
+      <article><small>Days 31–60</small><h3>Own</h3><p>Take the highest-traffic products first. Run them, fix them and join their incident rota. Write contracts for the rules that currently live in someone's head.</p></article>
+      <article><small>Days 61–90</small><h3>Standardise</h3><p>Agree one ingestion pattern, one quality mechanism and one deployment path with the other leads, adopted where each has proved itself twice.</p></article>
+    </div>
+  </div>
+</section>
+
+<section id="honest" class="section-pad" aria-labelledby="honest-title">
+  <div class="shell honest-grid">
+    <div>
+      <div class="section-index"><span>07 · What is real</span><span>Sources</span></div>
+      <h2 id="honest-title">What is real and <em>what is synthetic</em></h2>
+    </div>
+    <div class="honest">
+      <p><b>Real:</b> the Lifepal outcomes in section 01, from my CV and production work. The PySpark pipeline, contracts, compiler and tests in this repository, which run end to end with <code>./scripts/build.sh</code> and in CI.</p>
+      <p><b>Synthetic:</b> every client, colleague, fund and transaction. They are generated by <code>src/nexus/generate.py</code>, including replayed records, malformed rows and one ledger break, so the controls have real work to do. No Quilter or Lifepal data is used.</p>
+      <p><b>Depth:</b> in production I have run Databricks within Azure (Delta on ADLS Gen2, Workflows, ADF, Key Vault, Spark tuning, Kafka and Debezium CDC). I know Unity Catalog, Asset Bundles and Lakeflow declarative pipelines at working level, and Data Vault and Fabric at concept level.</p>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="contact section-pad" aria-labelledby="contact-title">
+  <div class="shell">
+    <h2 id="contact-title">Get in <em>touch</em></h2>
+    <p>R. Firman Insan Muhammad (VIM) · Lead Data Engineer · London · right to work in the UK, no sponsorship required.</p>
+    <div class="hero-cta">
+      <a class="button button-primary" href="mailto:firman.insan.m@gmail.com">firman.insan.m@gmail.com <span>→</span></a>
+      <a class="button button-secondary" href="https://www.linkedin.com/in/firmaninsan">LinkedIn <span>↗</span></a>
+      <a class="button button-secondary" href="https://github.com/rfim">GitHub <span>↗</span></a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="shell">
+    <p>An independent application by VIM. Not affiliated with or endorsed by Quilter plc; "Quilter" is used only to name the employer applied to. All client, colleague and fund data on this site is synthetic.</p>
+  </div>
+</footer>
+
+<div class="dialog" id="dialog" hidden>
+  <div class="dialog-box" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+    <div class="dialog-head"><h3 id="dialog-title"></h3><button type="button" id="dialog-close" aria-label="Close">×</button></div>
+    <pre class="code" id="dialog-code" tabindex="0"></pre>
+  </div>
+</div>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>

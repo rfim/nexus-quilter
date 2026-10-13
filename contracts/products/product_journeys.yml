@@ -1,0 +1,26 @@
+product:     product_journeys_monthly
+department:  Product
+owner:       platform-product-lead@example.com
+engineer:    vim@example.com
+question:    "Can clients leave as easily as they join? (Consumer Duty: consumer support)"
+definition:  >
+  Days to complete = completed_on - created_on for each service journey.
+  Completion rate = completed journeys / requested journeys.
+grain:       [month, journey_type]
+
+freshness:
+  column:    month
+  max_lag_days: 35
+
+columns:
+  - name:  journey_type
+    tests: [not_null, {accepted_values: [transfer_in, transfer_out, withdrawal, switch]}]
+  - name:  median_days
+    tests: [{range: {min: 0, max: 60}}]
+  - name:  completion_rate
+    tests: [{range: {min: 0, max: 1}}]
+
+access:
+  read:      [grp_product, grp_exec_mi, grp_consumer_duty]
+change:
+  breaking:  owner_approval

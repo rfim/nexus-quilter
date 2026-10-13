@@ -1,0 +1,4 @@
+pyspark==4.0.1
+delta-spark==4.0.0
+pyyaml==6.0.2
+pytest==8.3.3
