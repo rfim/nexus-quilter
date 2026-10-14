@@ -2,7 +2,7 @@
 
 An independent Lead Data Engineer portfolio by R. Firman Insan Muhammad (VIM), for the Chief Data Office at Quilter.
 
-**Live site:** https://rfim.github.io/nexus-quilter/ · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf)
+**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf)
 
 The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every agreement with a department ends up as a YAML data contract, and the contract compiles into checks that run on every load. The numbers on the site come from a real run of the Databricks Python in this repository, on synthetic wealth-platform data.
 
@@ -18,10 +18,22 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `contracts/` | Source contracts (`sources/`) and the five department contracts (`products/`). |
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
+| `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
+
+## The lakehouse in your browser
+
+`lakehouse.html` loads the Delta tables this run wrote, exactly as Spark left them. The browser:
+
+- **replays each `_delta_log`** (add/remove actions) to find the files at any version, so `DESCRIBE HISTORY`, `DESCRIBE DETAIL`, `VERSION AS OF n` and `TIMESTAMP AS OF '…'` come from the real commits;
+- **decodes the Parquet** with [parquet-wasm](https://github.com/kylebarron/parquet-wasm) and runs SQL in [DuckDB-WASM](https://github.com/duckdb/duckdb-wasm). No DuckDB extension is downloaded, so it works on networks that block `extensions.duckdb.org`;
+- **simulates Unity Catalog**: three-level names (`nexus.gold.…`), grants from the department contracts, column masks on personal data, and a row filter on legal entity, depending on the persona you "run as".
+
+Five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It is a simulation of Databricks behaviour, not Databricks itself.
 
 ## The last run
 
-- 13,242 landed transaction records → 13,022 in bronze; replaying every feed: 13,022 (no change)
+- 13,202 landed transaction records → 13,022 in bronze; replaying every feed: 13,022 (no change)
+- A late batch of 40 corrections a day later: MERGE updates them in place, and Finance's product is restated as Delta version 1 (version 0 is "as issued")
 - 15 malformed rows quarantined (9 bad ISINs, 6 unknown transaction types)
 - Fact table 13,007 rows, unchanged after an incremental re-run
 - Contracts: 39 of 40 checks pass. The failure is the planted £250 ledger break on 14 Aug 2026, caught by Finance's reconciliation rule.

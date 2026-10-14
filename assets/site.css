@@ -219,3 +219,9 @@ pre.code .c{color:#6f8b7a}pre.code .s{color:#e7c27d}pre.code .k{color:#8fdcae;fo
   .matrix{grid-template-columns:1fr}
   pre.code{font-size:11.5px}
 }
+
+.lakehouse-cta{display:grid;grid-template-columns:auto 1fr auto;gap:1.2rem;align-items:center;margin-top:1rem;padding:1.1rem 1.4rem;border-radius:8px;background:var(--mint);color:var(--forest)}
+.lakehouse-cta b{font-size:1.2rem}.lakehouse-cta span{font-size:.92rem}.lakehouse-cta i{font-style:normal;font-size:1.4rem}
+.lakehouse-cta:hover{background:#fff}
+.stage-detail p a{color:var(--mint);font-weight:700}
+@media (max-width:700px){.lakehouse-cta{grid-template-columns:1fr}}

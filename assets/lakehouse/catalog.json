@@ -1,0 +1,297 @@
+{
+ "catalog": "nexus",
+ "tables": [
+  {
+   "name": "nexus.bronze.account",
+   "layer": "bronze",
+   "path": "nexus/bronze/account",
+   "versions": 2,
+   "owner": "client-data@example.com",
+   "comment": "platform",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.client",
+   "layer": "bronze",
+   "path": "nexus/bronze/client",
+   "versions": 2,
+   "owner": "client-data@example.com",
+   "comment": "platform",
+   "department": null,
+   "read": [],
+   "pii": {
+    "email": "email",
+    "national_insurance_no": "ni_number",
+    "vulnerable": "vulnerability"
+   }
+  },
+  {
+   "name": "nexus.bronze.colleague",
+   "layer": "bronze",
+   "path": "nexus/bronze/colleague",
+   "versions": 2,
+   "owner": "people-data@example.com",
+   "comment": "hr",
+   "department": null,
+   "read": [],
+   "pii": {
+    "full_name": "name"
+   }
+  },
+  {
+   "name": "nexus.bronze.finance_ledger",
+   "layer": "bronze",
+   "path": "nexus/bronze/finance_ledger",
+   "versions": 2,
+   "owner": "finance-reporting-lead@example.com",
+   "comment": "finance",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.fund",
+   "layer": "bronze",
+   "path": "nexus/bronze/fund",
+   "versions": 2,
+   "owner": "fund-data@example.com",
+   "comment": "investments",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.fund_charge",
+   "layer": "bronze",
+   "path": "nexus/bronze/fund_charge",
+   "versions": 2,
+   "owner": "fund-data@example.com",
+   "comment": "investments",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.marketing_spend",
+   "layer": "bronze",
+   "path": "nexus/bronze/marketing_spend",
+   "versions": 2,
+   "owner": "marketing-ops@example.com",
+   "comment": "marketing",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.platform_transaction",
+   "layer": "bronze",
+   "path": "nexus/bronze/platform_transaction",
+   "versions": 4,
+   "owner": "platform-data@example.com",
+   "comment": "platform",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.bronze.service_journey",
+   "layer": "bronze",
+   "path": "nexus/bronze/service_journey",
+   "versions": 2,
+   "owner": "servicing-data@example.com",
+   "comment": "servicing",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.executive_kpis_monthly",
+   "layer": "gold",
+   "path": "nexus/gold/executive_kpis_monthly",
+   "versions": 2,
+   "owner": "chief-data-officer@example.com",
+   "comment": "AUA = account value at month end (opening value plus cumulative flows). Net Flows uses the Finance definition. Active clients = clients holding at least one account at month end.",
+   "department": "Executive",
+   "read": [
+    "grp_exec_mi",
+    "grp_board_pack"
+   ],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.fct_platform_transaction",
+   "layer": "gold",
+   "path": "nexus/gold/fct_platform_transaction",
+   "versions": 4,
+   "owner": "data-platform@example.com",
+   "comment": "",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.finance_net_flows_daily",
+   "layer": "gold",
+   "path": "nexus/gold/finance_net_flows_daily",
+   "versions": 2,
+   "owner": "finance-reporting-lead@example.com",
+   "comment": "Net Flows = sum(amount_gbp) over contributions (positive), withdrawals and fees (negative). Switches between funds and income are excluded.",
+   "department": "Finance",
+   "read": [
+    "grp_finance",
+    "grp_exec_mi"
+   ],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.hr_workforce_monthly",
+   "layer": "gold",
+   "path": "nexus/gold/hr_workforce_monthly",
+   "versions": 2,
+   "owner": "people-analytics-lead@example.com",
+   "comment": "Headcount = colleagues employed at month end. Leavers (12m) = colleagues whose last day fell in the trailing 12 months. Attrition = leavers / average headcount.",
+   "department": "HR",
+   "read": [
+    "grp_hr",
+    "grp_exec_mi"
+   ],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.marketing_acquisition_monthly",
+   "layer": "gold",
+   "path": "nexus/gold/marketing_acquisition_monthly",
+   "versions": 2,
+   "owner": "marketing-performance-lead@example.com",
+   "comment": "New clients = clients whose first account opened in the month. Cost per acquisition = channel spend / new clients.",
+   "department": "Marketing",
+   "read": [
+    "grp_marketing",
+    "grp_exec_mi"
+   ],
+   "pii": {}
+  },
+  {
+   "name": "nexus.gold.product_journeys_monthly",
+   "layer": "gold",
+   "path": "nexus/gold/product_journeys_monthly",
+   "versions": 2,
+   "owner": "platform-product-lead@example.com",
+   "comment": "Days to complete = completed_on - created_on for each service journey. Completion rate = completed journeys / requested journeys.",
+   "department": "Product",
+   "read": [
+    "grp_product",
+    "grp_exec_mi",
+    "grp_consumer_duty"
+   ],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.account",
+   "layer": "silver",
+   "path": "nexus/silver/account",
+   "versions": 2,
+   "owner": "client-data@example.com",
+   "comment": "platform",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.colleague",
+   "layer": "silver",
+   "path": "nexus/silver/colleague",
+   "versions": 2,
+   "owner": "people-data@example.com",
+   "comment": "hr",
+   "department": null,
+   "read": [],
+   "pii": {
+    "full_name": "name"
+   }
+  },
+  {
+   "name": "nexus.silver.dim_client",
+   "layer": "silver",
+   "path": "nexus/silver/dim_client",
+   "versions": 2,
+   "owner": "data-platform@example.com",
+   "comment": "",
+   "department": null,
+   "read": [],
+   "pii": {
+    "email": "email",
+    "national_insurance_no": "ni_number",
+    "vulnerable": "vulnerability"
+   }
+  },
+  {
+   "name": "nexus.silver.dim_fund_share_class",
+   "layer": "silver",
+   "path": "nexus/silver/dim_fund_share_class",
+   "versions": 2,
+   "owner": "data-platform@example.com",
+   "comment": "",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.finance_ledger",
+   "layer": "silver",
+   "path": "nexus/silver/finance_ledger",
+   "versions": 2,
+   "owner": "finance-reporting-lead@example.com",
+   "comment": "finance",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.marketing_spend",
+   "layer": "silver",
+   "path": "nexus/silver/marketing_spend",
+   "versions": 2,
+   "owner": "marketing-ops@example.com",
+   "comment": "marketing",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.platform_transaction",
+   "layer": "silver",
+   "path": "nexus/silver/platform_transaction",
+   "versions": 2,
+   "owner": "platform-data@example.com",
+   "comment": "platform",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.platform_transaction_quarantine",
+   "layer": "silver",
+   "path": "nexus/silver/platform_transaction_quarantine",
+   "versions": 2,
+   "owner": "data-platform@example.com",
+   "comment": "",
+   "department": null,
+   "read": [],
+   "pii": {}
+  },
+  {
+   "name": "nexus.silver.service_journey",
+   "layer": "silver",
+   "path": "nexus/silver/service_journey",
+   "versions": 2,
+   "owner": "servicing-data@example.com",
+   "comment": "servicing",
+   "department": null,
+   "read": [],
+   "pii": {}
+  }
+ ]
+}

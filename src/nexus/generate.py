@@ -97,7 +97,7 @@ def generate(seed: int = 7) -> dict:
                    for t in originals]
     malformed = [dict(rng.choice(tx), transaction_id=f"X{k:05d}", isin="BADISIN") for k in range(9)] + \
                 [dict(rng.choice(tx), transaction_id=f"Y{k:05d}", transaction_type="unknown") for k in range(6)]
-    stream = tx + replays + corrections + malformed
+    stream = tx + replays + malformed          # corrections arrive later, as their own batch
     rng.shuffle(stream)
 
     # finance ledger: what the general ledger booked per day, independently of the platform
@@ -145,11 +145,12 @@ def generate(seed: int = 7) -> dict:
             spend.append({"month": m, "channel": ch, "spend_gbp": round(base * rng.uniform(0.8, 1.25), 2)})
         m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
 
+    _write("platform_transactions_late", corrections)
     feeds = {"funds": funds, "fund_charges": fund_history, "clients": clients, "accounts": accounts,
              "platform_transactions": stream, "finance_ledger": ledger_rows, "service_journeys": journeys,
              "colleagues": colleagues, "marketing_spend": spend}
     for name, rows in feeds.items():
         _write(name, rows)
     return {name: len(rows) for name, rows in feeds.items()} | {
-        "replayed_records": len(replays), "corrections": len(corrections), "malformed_records": len(malformed),
+        "replayed_records": len(replays), "late_corrections": len(corrections), "malformed_records": len(malformed),
         "generated_at": datetime(2026, 10, 1, 6, 0).isoformat()}

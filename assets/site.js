@@ -189,7 +189,7 @@ function stages(data) {
   const totalChecks = data.contracts.reduce((a, c) => a + c.total, 0), passed = data.contracts.reduce((a, c) => a + c.passed, 0);
   return [
     { key: "ingest", t: "Land", stat: n(r.bronze.platform_transactions), d: "unique transactions in bronze, written by MERGE",
-      long: `The landing feed held ${n(r.feeds.platform_transactions)} records, including ${r.feeds.replayed_records} replayed offsets and ${r.feeds.corrections} corrections. Deduplication inside the batch plus an ordered MERGE left ${n(r.bronze.platform_transactions)} rows. Replaying every feed changed nothing: ${n(r.bronze_after_replay.platform_transactions)} rows after the replay.` },
+      long: `The landing feed held ${n(r.feeds.platform_transactions)} records, including ${r.feeds.replayed_records} replayed offsets. Deduplication inside the batch plus an ordered MERGE left ${n(r.bronze.platform_transactions)} rows, and replaying every feed changed nothing (${n(r.bronze_after_replay.platform_transactions)} rows). A day later ${r.feeds.late_corrections} corrections arrived as their own batch; the higher CDC sequence won, and Finance's product was restated as a new Delta version. <a href="lakehouse.html">Time travel between the two in the lakehouse →</a>` },
     { key: "quality", t: "Prove", stat: n(r.silver.quarantine), d: "malformed rows quarantined, with the rule that failed",
       long: `Rules come from the source contract. ${Object.entries(r.silver.quarantine_reasons).map(([k, v]) => `${v} failed <code>${k}</code>`).join(", ")}. Clean rows continue. Failed rows are kept, with an owner, so they can be inspected and fixed.` },
     { key: "scd2", t: "Historise", stat: "3", d: "funds repriced mid-year, kept as SCD2 versions",
