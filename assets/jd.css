@@ -102,4 +102,4 @@
 .ask-in{display:flex;gap:.5rem;margin-top:.6rem}
 .ask-in input{flex:1;font:inherit;padding:.65rem .8rem;border:1px solid var(--line);border-radius:6px}
 .how-steps{margin:.4rem 0 0;padding-left:1.2rem;font-size:.92rem}.how-steps li{margin:.35rem 0}
-@media (max-width:900px){.ask-grid{grid-template-columns:1fr}.thread{height:460px}.mini div{grid-template-columns:6rem 1fr 5rem}}
+@media (max-width:900px){.ask-grid{grid-template-columns:minmax(0,1fr)}.thread{height:460px}.mini div{grid-template-columns:6rem 1fr 5rem}}
