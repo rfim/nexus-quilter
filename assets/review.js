@@ -68,7 +68,7 @@ const NIT = { lines: [16], title: "print() instead of logging", severity: "nit" 
 
 const flagged = new Set();
 function renderCode() {
-  $("#code").innerHTML = CODE.map((l, i) => `<div class="ln${flagged.has(i + 1) ? " flag" : ""}" data-n="${i + 1}"><span>${i + 1}</span><span>${esc(l) || " "}</span></div>`).join("");
+  $("#code").innerHTML = CODE.map((l, i) => `<div class="ln${flagged.has(i + 1) ? " flag" : ""}" data-n="${i + 1}"><span>${i + 1}</span><span>${NexusHL.hl(l, "python") || " "}</span></div>`).join("");
   document.querySelectorAll("#code .ln").forEach((el) => el.onclick = () => {
     const n = +el.dataset.n;
     if (!CODE[n - 1].trim()) return;

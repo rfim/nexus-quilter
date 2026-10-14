@@ -7,9 +7,10 @@
 // DuckDB-WASM runs the SQL over the Arrow data. No DuckDB extension is downloaded, so it also
 // works on networks that block extensions.duckdb.org.
 // Unity Catalog part: three-level names (nexus.<schema>.<table>), grants, column masks and row
-// filters, applied according to the persona you "run as". It is a simulation of the behaviour,
-// not Databricks itself.
+// filters, applied according to the persona you "run as". It reproduces the behaviour in the
+// browser; it is not Databricks itself.
 import { openLakehouse, PERSONAS } from "./engine.js";
+import { renderArchitecture, renderOrchestration, renderLineage, renderCost } from "./platform.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -112,10 +113,11 @@ ORDER BY attrition_rate_12m DESC NULLS LAST`),
   { key: "contracts", title: "05 · Contract checks", intro: "", cells: [] },
 ];
 
-let current = NOTEBOOKS[0];
+let current = "arch";
+let showView = () => {};
 
 function renderNotebook(nb) {
-  current = nb;
+  current = nb.key;
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.key === nb.key));
   const view = $("#view");
   view.innerHTML = `<div class="nb-head"><div><h1>${esc(nb.title)}</h1><p>${nb.intro}</p></div><button class="btn" id="runall">Run all</button></div><div id="cells"></div>`;
@@ -125,8 +127,11 @@ function renderNotebook(nb) {
     const el = document.createElement("div");
     el.className = "cell";
     el.innerHTML = `<div class="cell-bar"><span class="lang">SQL</span><span>Cmd ${i + 1}</span><button class="btn">Run</button></div>
-      <textarea spellcheck="false" aria-label="SQL cell ${i + 1}" rows="${Math.min(14, c.sql.split("\n").length + 1)}">${esc(c.sql)}</textarea><div class="out" hidden></div>`;
-    const ta = $("textarea", el), out = $(".out", el);
+      <div class="ed"><pre class="ed-hl hl-light" aria-hidden="true"></pre><textarea spellcheck="false" aria-label="SQL cell ${i + 1}" rows="${Math.min(14, c.sql.split("\n").length + 1)}">${esc(c.sql)}</textarea></div><div class="out" hidden></div>`;
+    const ta = $("textarea", el), out = $(".out", el), pre = $(".ed-hl", el);
+    // coloured SQL behind a transparent textarea, kept in step as you type and scroll
+    const paint = () => { pre.innerHTML = NexusHL.hl(ta.value, "sql") + "\n "; pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; };
+    ta.addEventListener("input", paint); ta.addEventListener("scroll", paint); paint();
     const go = async () => {
       c.sql = ta.value; out.hidden = false; out.innerHTML = '<div class="meta">Running…</div>';
       try { await ready; renderResult(out, await runSQL(ta.value)); } catch (e) { renderResult(out, null, e); }
@@ -139,17 +144,8 @@ function renderNotebook(nb) {
   $("#runall").onclick = async () => { for (const el of wrap.querySelectorAll(".cell:not(.md)")) await el.run(); };
 }
 
-function renderWorkflow(run) {
-  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.key === "workflow"));
-  const total = Math.max(...run.tasks.map((t) => t.start_s + t.duration_s));
-  $("#view").innerHTML = `<div class="nb-head"><div><h1>Workflows · nexus-daily</h1>
-    <p>The recorded run of <code>scripts/build.sh</code>, the same task order a Databricks job runs (see <code>databricks.yml</code>). Local Spark on two cores, so the durations are for scale, not a benchmark.</p></div></div>
-    <div class="gantt">${run.tasks.map((t) => `<div class="row"><span class="ok-dot">${esc(t.label)}</span>
-      <div class="track"><div class="bar" style="left:${(t.start_s / total) * 100}%;width:${Math.max(0.6, (t.duration_s / total) * 100)}%"></div></div>
-      <span>${t.duration_s.toFixed(1)}s</span></div>`).join("")}</div>`;
-}
-
 async function renderTable(t) {
+  current = "table";
   document.querySelectorAll("#tree button").forEach((b) => b.classList.toggle("on", b.dataset.name === t.name));
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", "false"));
   const s = snapshot(t);
@@ -189,6 +185,7 @@ $("#persona").onchange = async (e) => {
   const p = PERSONAS.find((x) => x.key === e.target.value);
   setEngine(`Applying grants and masks for ${p.label}…`);
   await lake.setPersona(p.key); renderTree();
+  if (current === "lineage") showView("lineage");
   setEngine(`Running as ${p.label}`);
 };
 
@@ -202,11 +199,21 @@ ready.then(async () => {
     nb.cells.push(md(`<b>${esc(c.department)}</b> · ${esc(c.product)} · owner ${esc(c.owner)} · ${c.passed}/${c.total} passed on the last Spark run`));
     for (const r of c.results.filter((r) => r.kind !== "privacy_columns")) nb.cells.push(sql(`-- ${r.check}\n${toDuck(r.sql)}`));
   }
-  NOTEBOOKS.push({ key: "workflow", title: "Workflows", run: site.run });
-  $("#tabs").innerHTML = NOTEBOOKS.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("");
-  document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => {
-    const n = NOTEBOOKS.find((x) => x.key === b.dataset.key);
-    n.run ? renderWorkflow(n.run) : renderNotebook(n);
-  });
-  renderNotebook(NOTEBOOKS[0]);
+  const TOUR = [
+    { key: "arch", title: "Architecture", go: () => renderArchitecture($("#view"), lake, site) },
+    { key: "orch", title: "Orchestration", go: () => renderOrchestration($("#view"), site) },
+    { key: "lineage", title: "Lineage & governance", go: () => renderLineage($("#view"), lake) },
+    { key: "cost", title: "Cost", go: () => renderCost($("#view"), site) },
+  ];
+  $("#tabs").innerHTML = `<span class="tab-group">Platform</span>${TOUR.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}
+    <span class="tab-group">Notebooks</span>${NOTEBOOKS.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}`;
+  const open = (key) => {
+    current = key;
+    document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", b.dataset.key === key));
+    const t = TOUR.find((x) => x.key === key);
+    if (t) t.go(); else renderNotebook(NOTEBOOKS.find((x) => x.key === key));
+  };
+  showView = open;
+  document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => open(b.dataset.key));
+  open(TOUR.some((t) => t.key === location.hash.slice(1)) ? location.hash.slice(1) : "arch");
 }).catch((e) => setEngine(`Could not start: ${e.message}`));

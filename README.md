@@ -43,7 +43,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **decodes the Parquet** with [parquet-wasm](https://github.com/kylebarron/parquet-wasm) and runs SQL in [DuckDB-WASM](https://github.com/duckdb/duckdb-wasm). No DuckDB extension is downloaded, so it works on networks that block `extensions.duckdb.org`;
 - **simulates Unity Catalog**: three-level names (`nexus.gold.…`), grants from the department contracts, column masks on personal data, and a row filter on legal entity, depending on the persona you "run as".
 
-Five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It reproduces Databricks behaviour in the browser; it is not Databricks itself.
+Four platform views open it: **Architecture** (the end-to-end flow, animated, with the run's real counts), **Orchestration** (the recorded job run replayed, including a failure and a repair run), **Lineage & governance** (every table's upstream and blast radius, with PII tags and grants for the chosen persona) and **Cost** (the levers and a small estimator). Then five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It reproduces Databricks behaviour in the browser; it is not Databricks itself.
 
 ## The last run
 

@@ -7,32 +7,8 @@ const gbp = (v, d = 0) => "£" + Number(v).toLocaleString("en-GB", { maximumFrac
 const short = (v) => Math.abs(v) >= 1e6 ? "£" + (v / 1e6).toFixed(1) + "m" : Math.abs(v) >= 1e3 ? "£" + (v / 1e3).toFixed(0) + "k" : gbp(v);
 const mon = (iso) => new Date(iso + "T00:00:00").toLocaleString("en-GB", { month: "short" });
 
-// --- tiny syntax highlighter (comments, strings, keywords, numbers) -------------------------
-function highlight(src, lang) {
-  const kw = lang === "python"
-    ? /\b(?:from|import|def|return|if|for|in|else|elif|and|or|not|None|True|False|with|as|lambda)\b/
-    : lang === "sql"
-      ? /\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|IS|NULL|AS|ON|JOIN|FULL|LEFT|USING|GROUP|BY|HAVING|WITH|ALTER|TABLE|SET|TAGS|OWNER|TO|GRANT|COMMENT|DATE|INTERVAL|DAYS|count|sum|max|round|abs|coalesce|trunc)\b/
-      : null;
-  const com = lang === "sql" ? /--[^\n]*/ : /#[^\n]*/;
-  const re = new RegExp(`(${com.source})|("(?:[^"\\\\\n]|\\\\.)*"|'[^'\n]*')|(\\b\\d+(?:\\.\\d+)?\\b)` + (kw ? `|(${kw.source})` : ""), "g");
-  let out = "", last = 0;
-  if (lang === "yaml") {
-    return src.split("\n").map((line) => {
-      const m = line.match(/^(\s*-?\s*)([\w.]+:)(.*)$/);
-      if (!m) return line.trim().startsWith("#") ? `<span class="c">${esc(line)}</span>` : esc(line);
-      let rest = m[3], c = "";
-      const i = rest.indexOf("  #"); if (i >= 0) { c = rest.slice(i); rest = rest.slice(0, i); }
-      return esc(m[1]) + `<span class="k">${esc(m[2])}</span>` + esc(rest).replace(/(".*?")/g, '<span class="s">$1</span>') + (c ? `<span class="c">${esc(c)}</span>` : "");
-    }).join("\n");
-  }
-  src.replace(re, (t, c, s, n, k, off) => {
-    out += esc(src.slice(last, off));
-    out += `<span class="${c ? "c" : s ? "s" : n ? "n" : "k"}">${esc(t)}</span>`;
-    last = off + t.length;
-  });
-  return out + esc(src.slice(last));
-}
+// --- syntax colouring: assets/hl.js (SQL, Python, YAML, diffs) ---------------------------
+const highlight = (src, lang) => NexusHL.hl(src, lang);
 
 // --- charts: plain SVG, one palette ---------------------------------------------------------
 const C = { green: "#0f7b3f", mid: "#159847", mint: "#5fc488", dark: "#00301a", amber: "#a07d3a", grey: "#9aa89f", red: "#b3261e" };
@@ -179,7 +155,7 @@ function renderContract(dept, data) {
   $("#result-head").innerHTML = `<h3>${esc(c.product)} <span class="score ${fail ? "fail" : ""}">${c.passed}/${c.total} passed</span></h3>
     <p>Owner: ${esc(c.owner)} · checks generated from the contract and run on the last load.</p>`;
   $("#checks").innerHTML = c.results.map((r) => `<li><details class="${r.status}"><summary><span class="st">${r.status}</span>
-    <span>${esc(r.check)}</span><span class="kind">${r.kind}</span></summary><pre>${esc(r.sql)}${r.failing_rows ? "\n\n-- failing rows: " + r.failing_rows + "\n" + esc(JSON.stringify(r.sample, null, 1)) : ""}</pre></details></li>`).join("") +
+    <span>${esc(r.check)}</span><span class="kind">${r.kind}</span></summary><pre class="hl-light">${highlight(r.sql + (r.failing_rows ? "\n\n-- failing rows: " + r.failing_rows + "\n-- " + JSON.stringify(r.sample).slice(0, 400) : ""), "sql")}</pre></details></li>`).join("") +
     (fail ? `<li class="callout"><b>The check worked as intended.</b> The generator plants one ledger posting the platform never received. Reconciliation catches the £250 difference on 14 Aug, the product is flagged, and the Finance owner is told before month-end.</li>` : "");
 }
 

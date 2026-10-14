@@ -58,8 +58,8 @@
 .code-review{font:12.5px/1.65 var(--font-mono);background:#fff;border:1px solid var(--line);border-radius:8px;overflow:auto}
 .code-review .ln{display:grid;grid-template-columns:3.2rem 1fr;cursor:pointer;white-space:pre}
 .code-review .ln:hover{background:#f5f8f5}
-.code-review .ln span:first-child{color:#9aa89f;text-align:right;padding-right:.8rem;border-right:1px solid var(--line);user-select:none}
-.code-review .ln span:last-child{padding-left:.8rem}
+.code-review .ln > span:first-child{color:#9aa89f;text-align:right;padding-right:.8rem;border-right:1px solid var(--line);user-select:none}
+.code-review .ln > span:last-child{padding-left:.8rem}
 .code-review .ln.flag{background:#fff7e8}
 .code-review .ln.hit{background:#e7f1ea}
 .code-review .ln.miss{background:#fff7f6}

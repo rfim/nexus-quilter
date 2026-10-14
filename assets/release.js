@@ -4,6 +4,17 @@ import { $, esc, fmt, header, lakehouse, evidence, choose, table } from "./jdkit
 header("release.html");
 lakehouse($("#engine")).then(() => { $("#engine").textContent = "Lakehouse ready: the gate below runs on the real Delta tables."; });
 
+const CONTRACT_DIFF = `  product:     finance_net_flows_daily
+- grain:       [legal_entity, wrapper_code, trade_date]
++ grain:       [legal_entity, wrapper_code, channel, trade_date]
+  columns:
++   - name:  channel            # the client's channel on the trade date
++     tests: [not_null, {accepted_values: [Quilter adviser, Independent adviser, Direct]}]
+  reconcile:
+    against:   finance_ledger     # unchanged: totals must still match the ledger
+  change:
+    breaking:  owner_approval     # grain change → Finance signs off on the PR`;
+
 const STEPS = ["clarify", "contract", "plan", "gate", "release"];
 const done = new Set();
 const mark = (k) => { done.add(k); $("#progress").innerHTML = STEPS.map((s) => `<i class="${done.has(s) ? "done" : ""}"></i>`).join(""); };
@@ -28,16 +39,7 @@ function render() {
 
   <div class="card" id="s-contract" hidden><span class="step">Step 2 · Design as a contract change</span><h2>Change the contract, then see who it touches</h2>
     <p>Adding channel changes the product's grain, so it's a breaking change: the owner approves it on the pull request, and the blast radius is posted automatically.</p>
-    <div class="diff">  product:     finance_net_flows_daily
-<span class="del">- grain:       [legal_entity, wrapper_code, trade_date]</span>
-<span class="add">+ grain:       [legal_entity, wrapper_code, channel, trade_date]</span>
-  columns:
-<span class="add">+   - name:  channel            # the client's channel on the trade date
-+     tests: [not_null, {accepted_values: [Quilter adviser, Independent adviser, Direct]}]</span>
-  reconcile:
-    against:   finance_ledger     # unchanged: totals must still match the ledger
-  change:
-    breaking:  owner_approval     # grain change → Finance signs off on the PR</div>
+    <div class="diff">${NexusHL.hl(CONTRACT_DIFF, "diff:yaml")}</div>
     <h3>Blast radius (from lineage)</h3>
     <div style="overflow-x:auto"><table class="out-card" style="width:100%"><tbody>
       <tr><td>nexus.gold.executive_kpis_monthly</td><td>reads monthly net flows; its contract reconciles to Finance's</td><td>chief-data-officer@</td></tr>

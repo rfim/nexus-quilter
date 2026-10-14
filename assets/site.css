@@ -265,3 +265,13 @@ button.chapter{width:100%;text-align:left;font:inherit;cursor:pointer}
 @media (max-width:860px){.hiw-grid,.foundation{grid-template-columns:1fr}.story-nav{grid-template-columns:1fr}}
 .hiw .split-heading em{color:var(--mint)}
 .hiw .split-heading{margin-top:1.6rem}
+/* code colouring: VS Code Dark+ on dark blocks (default), Light+ inside .hl-light */
+.hl-com{color:#6a9955;font-style:italic}.hl-str{color:#ce9178}.hl-num{color:#b5cea8}.hl-kw{color:#569cd6;font-weight:600}
+.hl-ctl{color:#c586c0}.hl-fn{color:#dcdcaa}.hl-type{color:#4ec9b0}.hl-var{color:#9cdcfe}.hl-key{color:#9cdcfe}
+.hl-const{color:#569cd6}.hl-op{color:#d4d4d4}
+.hl-add{display:inline-block;min-width:100%;background:rgba(46,160,67,.22);box-shadow:inset 3px 0 0 #3fb950}
+.hl-del{display:inline-block;min-width:100%;background:rgba(248,81,73,.2);box-shadow:inset 3px 0 0 #f85149}
+.hl-light .hl-com{color:#008000}.hl-light .hl-str{color:#a31515}.hl-light .hl-num{color:#098658}.hl-light .hl-kw{color:#0000ff}
+.hl-light .hl-ctl{color:#af00db}.hl-light .hl-fn{color:#795e26}.hl-light .hl-type{color:#267f99}.hl-light .hl-var{color:#001080}
+.hl-light .hl-key{color:#0451a5}.hl-light .hl-const{color:#0000ff}.hl-light .hl-op{color:#3b3b3b}
+.hl-light .hl-add{background:#e6ffec;box-shadow:inset 3px 0 0 #2da44e}.hl-light .hl-del{background:#ffebe9;box-shadow:inset 3px 0 0 #cf222e}

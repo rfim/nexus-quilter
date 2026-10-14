@@ -87,7 +87,7 @@ function showDetail(key) {
     s.sample.rows.map((r) => `<tr>${r.map((v) => `<td>${v == null ? '<span class="muted">null</span>' : esc(v)}</td>`).join("")}</tr>`).join("")}</table></div>` : "";
   $("#detail").innerHTML = `<h3>${esc(t.label)} <span class="muted">· ${esc(s.status)}${s.ms != null ? ` · ${s.ms} ms` : ""}</span></h3>
     ${s.error ? `<p class="fail">${esc(s.error)}</p>` : ""}<div class="metrics">${metrics}</div>
-    ${s.sql.length ? `<h4>SQL it ran</h4><pre>${esc(s.sql.join(";\n\n") + ";")}</pre>` : ""}${sample}`;
+    ${s.sql.length ? `<h4>SQL it ran</h4><pre>${NexusHL.hl(s.sql.join(";\n\n") + ";", "sql")}</pre>` : ""}${sample}`;
 }
 
 async function q(task, sql) {

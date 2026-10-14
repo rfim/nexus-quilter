@@ -55,8 +55,8 @@ function render() {
 
   <div class="card" id="s-publish" hidden><span class="step">Step 2 · Publish an aggregate from the pipeline</span><h2>The service principal builds the answer; people only see the totals</h2>
     <p>The pipeline is allowed to read the flag. It joins, aggregates, drops any group smaller than ${MIN_CELL} journeys so nobody can be singled out, and publishes the result with grants from the contract.</p>
-    <div class="ev"><div class="ev-bar"><span><b>Pipeline job</b> · run as nexus-daily (service principal)</span><button class="small-btn solid" id="pub">Run and publish</button></div><pre>${esc(AGG)}</pre><div class="res" id="pub-res"></div></div>
-    <h3>The contract that goes with it</h3><div class="diff">${esc(CONTRACT)}</div></div>
+    <div class="ev"><div class="ev-bar"><span><b>Pipeline job</b> · run as nexus-daily (service principal)</span><button class="small-btn solid" id="pub">Run and publish</button></div><pre>${NexusHL.hl(AGG, "sql")}</pre><div class="res" id="pub-res"></div></div>
+    <h3>The contract that goes with it</h3><div class="diff">${NexusHL.hl(CONTRACT, "yaml")}</div></div>
 
   <div class="card" id="s-read" hidden><span class="step">Step 3 · Read it as the Consumer Duty analyst</span><h2>What the analyst sees</h2>
     <div id="ev-read"></div><div id="ev-still"></div><div id="bars"></div></div>

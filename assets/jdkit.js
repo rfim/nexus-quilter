@@ -46,7 +46,7 @@ export async function lakehouse(statusEl) {
 /** Render a SQL "evidence" block: shows the query, runs it on the lakehouse, shows the rows. */
 export async function evidence(el, title, sqlText, persona) {
   el.innerHTML = `<div class="ev"><div class="ev-bar"><span><b>Evidence from the lakehouse</b> · ${esc(title)}</span><button class="small-btn">Run</button></div>
-    <pre>${esc(sqlText.trim())}</pre><div class="res"></div></div>`;
+    <pre>${NexusHL.hl(sqlText.trim(), "sql")}</pre><div class="res"></div></div>`;
   const out = $(".res", el), btn = $("button", el);
   const run = async () => {
     btn.disabled = true; out.innerHTML = '<div class="err" style="color:#56665c">Running…</div>';
