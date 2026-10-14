@@ -71,6 +71,16 @@ def export_lakehouse() -> None:
     (dst_root / "catalog.json").write_text(json.dumps({"catalog": "nexus", "tables": tables}, indent=1))
 
 
+def export_landing() -> None:
+    """The raw landing files, for the in-browser ELT simulation (Extract and Load start from these)."""
+    import shutil
+    dst = ROOT / "assets" / "sim" / "landing"
+    shutil.rmtree(dst, ignore_errors=True)
+    dst.mkdir(parents=True)
+    for feed in sorted((ROOT / "landing").iterdir()):
+        shutil.copy2(feed / "part-0001.json", dst / f"{feed.name}.jsonl")
+
+
 def export() -> None:
     spark = get_spark()
     log = json.loads((TARGET / "run_log.json").read_text())
@@ -89,6 +99,7 @@ def export() -> None:
             "product_journeys_monthly": _rows(spark, "product_journeys_monthly", "month"),
         },
         "contracts": [],
+        "sources": [{k: v for k, v in src.items()} for src in contracts.load_sources()],
         "code": {k: {"path": p, "function": f, "source": _function_source(p, f)} for k, (p, f) in SNIPPETS.items()},
     }
     for c in log["contracts"]:
@@ -103,6 +114,7 @@ def export() -> None:
             "results": [{k: r[k] for k in ("check", "kind", "status", "failing_rows", "sql", "sample")} for r in c["results"]],
         })
     export_lakehouse()
+    export_landing()
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)
     SITE_DATA.write_text(json.dumps(data, default=_plain, separators=(",", ":")))
 

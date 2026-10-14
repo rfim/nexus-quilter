@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEXUS Simulations · ELT and stakeholders</title>
+<meta name="description" content="Two simulations mapped to the Lead Data Engineer role: run the whole ELT pipeline in your browser with incident scenarios, and work through a week of stakeholder requests.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/sim.css">
+</head>
+<body class="sim">
+<header class="site-header">
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">Simulations</span></span></a>
+  <nav aria-label="Primary">
+    <a href="index.html">Portfolio</a>
+    <a href="lakehouse.html">Lakehouse</a>
+    <a href="https://github.com/rfim/nexus-quilter" class="nav-code">See the code ↗</a>
+  </nav>
+</header>
+
+<main class="shell sim-main">
+  <section class="jd" aria-labelledby="jd-title">
+    <h1 id="jd-title">Simulations for the role</h1>
+    <p>I picked these from the Lead Data Engineer job description. Each one lets you see how I'd handle that part of the job, not just read about it.</p>
+    <div class="jd-grid">
+      <button class="jd-card" data-tab="elt"><small>Engineering delivery · operational excellence</small><b>ELT end to end</b><span>Run the whole pipeline in your browser, from raw landing files to checked data products. Add an incident and watch what happens.</span></button>
+      <button class="jd-card" data-tab="people"><small>Cross-functional collaboration · influence</small><b>Stakeholder week</b><span>Ten requests from Finance, Marketing, HR, Executive and Product. Choose how to respond and see what it does to trust, focus and risk.</span></button>
+      <a class="jd-card" href="lakehouse.html"><small>Governance · security · GDPR</small><b>Lakehouse</b><span>The real Delta tables: grants, masks, row filters and time travel, by persona.</span></a>
+    </div>
+  </section>
+
+  <nav class="sim-tabs" role="tablist" aria-label="Simulations">
+    <button role="tab" data-tab="elt" aria-selected="true">ELT end to end</button>
+    <button role="tab" data-tab="people" aria-selected="false">Stakeholder week</button>
+  </nav>
+
+  <!-- ELT -------------------------------------------------------------------------------- -->
+  <section id="tab-elt" class="sim-tab">
+    <div class="elt-head">
+      <div>
+        <h2>ELT end to end</h2>
+        <p>Your browser fetches the raw landing files, loads them into bronze with MERGE, splits bad rows into quarantine, builds silver and gold, checks every department's contract, then takes a late batch and restates. Every step is real SQL in DuckDB-WASM; click a task to see what it ran. With the default scenarios, the counts should match the Spark run.</p>
+      </div>
+      <div class="elt-run"><button class="btn-run" id="run" disabled>Starting engine…</button><span id="engine" class="engine" role="status" aria-live="polite"></span></div>
+    </div>
+    <fieldset class="scenarios" id="scenarios"><legend>Scenarios for this run</legend></fieldset>
+    <ol class="dag" id="dag" aria-label="Pipeline tasks"></ol>
+    <div class="elt-body">
+      <div class="console" id="console" aria-live="polite" aria-label="Run log"><div class="muted">Run log appears here.</div></div>
+      <div class="task-detail" id="detail"><p class="muted">Click a task to see the SQL it ran and a sample of its output.</p></div>
+    </div>
+    <div id="outcome"></div>
+  </section>
+
+  <!-- Stakeholders ------------------------------------------------------------------------ -->
+  <section id="tab-people" class="sim-tab" hidden>
+    <div class="elt-head">
+      <div>
+        <h2>Stakeholder week</h2>
+        <p>Monday to Friday, ten requests. There's no trick answer, but each choice moves department trust, the team's focus and the platform's risk. After each one I explain what I'd do and why.</p>
+      </div>
+      <button class="btn-run ghost" id="restart">Start again</button>
+    </div>
+    <div class="meters" id="meters"></div>
+    <div class="scenario" id="scenario"></div>
+  </section>
+</main>
+
+<script type="module" src="assets/sim.js"></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 An independent Lead Data Engineer portfolio by R. Firman Insan Muhammad (VIM), for the Chief Data Office at Quilter.
 
-**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf)
+**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **Simulations:** https://rfim.github.io/nexus-quilter/simulate.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf)
 
 The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every agreement with a department ends up as a YAML data contract, and the contract compiles into checks that run on every load. The numbers on the site come from a real run of the Databricks Python in this repository, on synthetic wealth-platform data.
 
@@ -18,7 +18,15 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `contracts/` | Source contracts (`sources/`) and the five department contracts (`products/`). |
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
+| `simulate.html`, `assets/sim/` | The ELT and stakeholder simulations, starting from the raw landing files. |
 | `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
+
+## Simulations
+
+`simulate.html` maps the job description to two hands-on simulations:
+
+- **ELT end to end** (engineering delivery, operational excellence). The browser fetches the raw landing files and runs the pipeline as DuckDB SQL: MERGE into bronze, quality split from the source contract, SCD2 and conformed silver, the incremental fact and five products, every department's contract checks, a late batch and a restatement, then messages to the data owners. Scenarios: replay every feed, malformed rows, late corrections, an upstream schema change (the load stops before writing, with an incident card), and the planted ledger break. With the defaults it matches the Spark run: 13,022 in bronze, 15 quarantined, 13,007 valid, 39/40 checks.
+- **Stakeholder week** (cross-functional collaboration, influence). Ten requests from Finance, Marketing, HR, Executive and Product; each choice moves department trust, team focus and platform risk, with my reasoning after each one.
 
 ## The lakehouse in your browser
 
