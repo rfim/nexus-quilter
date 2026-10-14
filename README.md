@@ -2,7 +2,7 @@
 
 An independent Lead Data Engineer portfolio by R. Firman Insan Muhammad (VIM), for the Chief Data Office at Quilter.
 
-**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **Simulations:** https://rfim.github.io/nexus-quilter/simulate.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf) · **One page:** [assets/VIM_Quilter_one_page.pdf](assets/VIM_Quilter_one_page.pdf)
+**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **How I work:** https://rfim.github.io/nexus-quilter/simulate.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf) · **One page:** [assets/VIM_Quilter_one_page.pdf](assets/VIM_Quilter_one_page.pdf)
 
 The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every agreement with a department ends up as a YAML data contract, and the contract compiles into checks that run on every load. The numbers on the site come from a real run of the Databricks Python in this repository, on synthetic wealth-platform data.
 
@@ -18,13 +18,13 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `contracts/` | Source contracts (`sources/`) and the five department contracts (`products/`). |
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
-| `simulate.html`, `assets/sim/` | The simulations hub, the ELT run and the stakeholder week, starting from the raw landing files. |
-| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html` | One simulation per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
+| `simulate.html`, `assets/sim/` | How I work: the start of the story, “How the data gets there” (the ELT run) and chapter 4 (a week with the business). |
+| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
 | `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
 
-## Simulations
+## How I work: lead and serve
 
-`simulate.html` is the hub. Every simulation runs on the same in-browser lakehouse (`assets/engine.js`), so the numbers agree from page to page.
+`simulate.html` starts the story: seven chapters, three about leading (design it, ship it, grow the team) and four about serving (the business, on-call, Consumer Duty, real time). Every chapter runs on the same in-browser lakehouse (`assets/engine.js`), so the numbers agree from page to page.
 
 - **ELT end to end** (engineering delivery, operational excellence). The browser fetches the raw landing files and runs the pipeline as DuckDB SQL: MERGE into bronze, quality split from the source contract, SCD2 and conformed silver, the incremental fact and five products, every department's contract checks, a late batch and a restatement, then messages to the data owners. Scenarios: replay every feed, malformed rows, late corrections, an upstream schema change (the load stops before writing, with an incident card), and the planted ledger break. With the defaults it matches the Spark run: 13,022 in bronze, 15 quarantined, 13,007 valid, 39/40 checks.
 - **Stakeholder week** (4 · cross-functional collaboration). Thirteen requests from Finance, Marketing, HR, Executive, Product and the architecture, platform and governance teams; each choice moves trust, team focus and platform risk, with my reasoning after each one.
@@ -43,7 +43,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **decodes the Parquet** with [parquet-wasm](https://github.com/kylebarron/parquet-wasm) and runs SQL in [DuckDB-WASM](https://github.com/duckdb/duckdb-wasm). No DuckDB extension is downloaded, so it works on networks that block `extensions.duckdb.org`;
 - **simulates Unity Catalog**: three-level names (`nexus.gold.…`), grants from the department contracts, column masks on personal data, and a row filter on legal entity, depending on the persona you "run as".
 
-Five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It is a simulation of Databricks behaviour, not Databricks itself.
+Five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It reproduces Databricks behaviour in the browser; it is not Databricks itself.
 
 ## The last run
 

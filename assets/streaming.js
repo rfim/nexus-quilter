@@ -18,7 +18,7 @@ async function boot() {
   // arrival order: the day's events in commit order, then the late corrections at the end
   main.sort((a, b) => a.trade_date.localeCompare(b.trade_date) || a.cdc_lsn - b.cdc_lsn);
   events = [...main, ...late];
-  $("#engine").textContent = `Lakehouse ready · ${fmt(events.length)} events queued on the platform topic (Event Hubs, simulated)`;
+  $("#engine").textContent = `Lakehouse ready · ${fmt(events.length)} events queued, replayed in the order the platform sent them`;
   $("#run").disabled = false;
 }
 

@@ -232,3 +232,36 @@ pre.code .c{color:#6f8b7a}pre.code .s{color:#e7c27d}pre.code .k{color:#8fdcae;fo
 .jd-links a:hover{border-color:var(--green)}
 .jd-links small{display:block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:.15rem}
 @media (max-width:860px){.jd-links{grid-template-columns:1fr 1fr}}
+
+/* live marker: the lakehouse and How I work are the heart of the site */
+.live{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2ee07a;margin-right:.45rem;vertical-align:middle;animation:beep 1.6s ease-out infinite}
+@keyframes beep{0%{box-shadow:0 0 0 0 rgba(46,224,122,.75)}70%{box-shadow:0 0 0 10px rgba(46,224,122,0)}100%{box-shadow:0 0 0 0 rgba(46,224,122,0)}}
+@media (prefers-reduced-motion:reduce){.live{animation:none}}
+.story-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:2rem}
+.story-nav a{display:block;background:#fff;border:1px solid var(--line);border-radius:10px;padding:1rem 1.2rem;font-weight:800;font-size:1.1rem;color:var(--ink)}
+.story-nav a:hover{border-color:var(--green)}
+.story-nav a.next{text-align:right;background:#00301a;color:#fff;border-color:#00301a}
+.story-nav small{display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:.2rem}
+.story-nav a.next small{color:var(--mint)}
+/* How I work, on the home page and the hub */
+.hiw{background:#00301a;color:#e8f3ec}
+.hiw h2{color:#fff}
+.hiw .lede{color:#cfe3d6;max-width:68ch;font-size:1.05rem}
+.hiw-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:1.6rem 0 1rem}
+.hiw-half h3{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mint);margin:0 0 .6rem}
+.hiw-half h3 b{color:#fff;font-size:1.3rem;letter-spacing:0;text-transform:none;display:block}
+.chapter{display:grid;grid-template-columns:2.4rem 1fr;gap:.2rem .8rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:.85rem 1rem;margin-bottom:8px;color:#e8f3ec}
+button.chapter{width:100%;text-align:left;font:inherit;cursor:pointer}
+.chapter:hover{border-color:var(--mint);background:rgba(255,255,255,.1)}
+.chapter i{grid-row:span 2;font-style:normal;font-weight:800;font-size:1.5rem;color:var(--mint)}
+.chapter b{color:#fff;font-size:1.05rem}
+.chapter span{font-size:.88rem;color:#cfe3d6}
+.foundation{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;background:#e7f1ea;color:var(--ink);border-radius:12px;padding:1.2rem 1.4rem}
+.foundation b{font-size:1.3rem;color:var(--forest)}
+.foundation p{margin:.2rem 0 0;color:#33463a}
+.foundation .btns{display:flex;gap:.5rem;flex-wrap:wrap}
+.foundation a{display:inline-flex;align-items:center;background:var(--green);color:#fff;font-weight:800;padding:.7rem 1.1rem;border-radius:6px;white-space:nowrap}
+.foundation a.ghost{background:#fff;color:var(--green);border:1px solid var(--green)}
+@media (max-width:860px){.hiw-grid,.foundation{grid-template-columns:1fr}.story-nav{grid-template-columns:1fr}}
+.hiw .split-heading em{color:var(--mint)}
+.hiw .split-heading{margin-top:1.6rem}

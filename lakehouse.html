@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEXUS Lakehouse · a Delta Lake simulation in your browser</title>
+<title>NEXUS Lakehouse · Delta Lake in your browser</title>
 <meta name="description" content="The real Delta tables from the NEXUS PySpark run, with their transaction logs, replayed in your browser. Query them with SQL, time travel between versions, and switch personas to see Unity Catalog grants, masks and row filters.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
@@ -12,7 +12,7 @@
 <body class="lh">
 <header class="lh-top">
   <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">Lakehouse</span></span></a>
-  <span class="lh-workspace">nexus-quilter · simulated workspace</span>
+  <span class="lh-workspace"><span class="live" aria-hidden="true"></span>The foundation of <a href="simulate.html" style="color:inherit;text-decoration:underline">How I work</a></span>
   <label class="lh-runas">Run as
     <select id="persona" aria-label="Run queries as"></select>
   </label>
@@ -25,7 +25,7 @@
     <div id="tree" class="lh-tree"><p class="lh-muted">Reading Delta logs…</p></div>
     <div class="lh-side-foot">
       <p>Every table here is a real Delta table from the PySpark run in this repo: Parquet data files plus its <code>_delta_log</code>. Your browser replays the log to find each version's files, decodes them with parquet-wasm, and runs your SQL in DuckDB-WASM.</p>
-      <a href="index.html">← Back to the portfolio</a>
+      <a href="simulate.html">← How I work</a> · <a href="index.html">Portfolio</a>
     </div>
   </aside>
 

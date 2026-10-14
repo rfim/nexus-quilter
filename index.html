@@ -21,7 +21,7 @@
     <a href="#contracts">Contracts</a>
     <a href="#platform">Platform</a>
     <a href="#team">Team</a>
-    <a href="simulate.html">Simulations</a>
+    <a href="#how-i-work"><span class="live" aria-hidden="true"></span>How I work</a>
     <a href="lakehouse.html">Lakehouse</a>
     <a href="https://github.com/rfim/nexus-quilter" class="nav-code">See the code ↗</a>
   </nav>
@@ -46,14 +46,13 @@
     <p class="presented">Presented to <b>Quilter</b> · Chief Data Office · Lead Data Engineer</p>
     <h1 id="hero-title">NEXUS</h1>
     <p class="hero-sub">Governed data products for every department, on Databricks within Azure</p>
-    <p class="hero-lede">I'm <b>VIM</b>, R. Firman Insan Muhammad, a Lead Data Engineer in London. For four years I have led the data platform at Lifepal, a regulated insurance marketplace. This site shows how I would serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every conversation with a department ends in a data contract, and every contract turns into tests that run on each load. The numbers below the fold come from a real run of the Databricks Python in this repository on synthetic wealth data.</p>
+    <p class="hero-lede">I'm <b>VIM</b>, R. Firman Insan Muhammad, a Lead Data Engineer in London. For four years I've led the data platform at Lifepal, a regulated insurance marketplace. This site shows how I would lead the team and serve Quilter's business. Don't just read about it: every chapter below runs on a real lakehouse, in your browser.</p>
     <div class="hero-cta">
-      <a class="button button-primary" href="#departments">See the departments <span>→</span></a>
-      <a class="button button-secondary" href="simulate.html">Try the simulations <span>→</span></a>
-      <a class="button button-secondary" href="lakehouse.html">Open the lakehouse <span>→</span></a>
-      <a class="button button-secondary" href="https://github.com/rfim/nexus-quilter">Read the code <span>↗</span></a>
+      <a class="button button-primary" href="#how-i-work"><span class="live" aria-hidden="true"></span>See how I work <span>→</span></a>
+      <a class="button button-primary" href="lakehouse.html"><span class="live" aria-hidden="true"></span>Open the lakehouse <span>→</span></a>
       <a class="button button-secondary" href="assets/Nexus_Quilter_VIM.pdf">Fireside deck (PDF) <span>↓</span></a>
-      <a class="button button-secondary" href="assets/VIM_Quilter_one_page.pdf">One-page summary (PDF) <span>↓</span></a>
+      <a class="button button-secondary" href="assets/VIM_Quilter_one_page.pdf">One page (PDF) <span>↓</span></a>
+      <a class="button button-secondary" href="https://github.com/rfim/nexus-quilter">Read the code <span>↗</span></a>
     </div>
     <dl class="hero-stats" aria-label="Measured outcomes at Lifepal">
       <div><dt>6h → 90m</dt><dd>nightly batch window</dd></div>
@@ -61,6 +60,33 @@
       <div><dt>−60%</dt><dd>ad-hoc requests</dd></div>
       <div><dt>$11k / $19k</dt><dd>monthly cost vs budget</dd></div>
     </dl>
+  </div>
+</section>
+
+<section id="how-i-work" class="hiw section-pad" aria-labelledby="hiw-title">
+  <div class="shell">
+    <div class="section-index section-index-light"><span><span class="live" aria-hidden="true"></span>Start here · How I work</span><span>Lead and serve, in seven chapters</span></div>
+    <div class="split-heading">
+      <h2 id="hiw-title">How I work: <em>lead and serve</em></h2>
+      <p class="lede">My first weeks as your Lead Data Engineer, told in seven moments. In each one you make the call, and I show what I'd do and why. All of them run on the same lakehouse, so the numbers agree from page to page.</p>
+    </div>
+      <div class="hiw-grid">
+        <div class="hiw-half"><h3>Lead<b>The team and the platform</b></h3>
+          <a class="chapter" href="design.html"><i>1</i><b>Design it</b><span>A Consumer Duty request arrives. I lead the design, one decision at a time.</span></a>
+          <a class="chapter" href="release.html"><i>2</i><b>Ship it</b><span>Finance wants a change. I take it from the first question to production.</span></a>
+          <a class="chapter" href="review.html"><i>3</i><b>Grow the team</b><span>A new engineer's first pull request. I review it so they learn.</span></a>
+        </div>
+        <div class="hiw-half"><h3>Serve<b>The business and its clients</b></h3>
+          <a class="chapter" href="simulate.html#people"><i>4</i><b>Work with the business</b><span>A week of requests from every department and partner team.</span></a>
+          <a class="chapter" href="oncall.html"><i>5</i><b>Keep it running</b><span>Monday, 07:02, on call. A board number is wrong.</span></a>
+          <a class="chapter" href="duty.html"><i>6</i><b>Protect clients</b><span>Are vulnerable clients waiting longer? Answer it without exposing anyone.</span></a>
+          <a class="chapter" href="streaming.html"><i>7</i><b>Keep it live</b><span>Ops want today's flows now. Stream them, then check against the books.</span></a>
+        </div>
+      </div>
+      <div class="foundation">
+        <div><b><span class="live" aria-hidden="true"></span>The foundation: the lakehouse</b><p>Every chapter runs on the same Delta tables my Databricks Python built, opened in your browser with the same grants, masks and row filters. That's why the numbers agree from page to page.</p></div>
+        <div class="btns"><a href="lakehouse.html">Open the lakehouse</a><a class="ghost" href="simulate.html">How the data gets there</a></div>
+      </div>
   </div>
 </section>
 
@@ -161,17 +187,7 @@
         <div class="q" data-q="eliminate"><small>Neither</small><b>Eliminate</b><p>No report without a decision attached.</p></div>
       </div>
     </div>
-    <a class="lakehouse-cta" href="simulate.html#people"><b>Try a stakeholder week</b><span>Thirteen requests from Finance, Marketing, HR, Executive and Product, and from the architecture, platform and governance teams. Choose how to respond, and see what each choice does to trust, focus and risk.</span><i>→</i></a>
-    <div class="jd-links" aria-label="The job description, as simulations">
-      <h3>The job description, one simulation each</h3>
-      <a href="design.html"><small>1 · Technical leadership</small>Design review</a>
-      <a href="release.html"><small>2 · Engineering delivery</small>Requirement to release</a>
-      <a href="review.html"><small>3 · Mentoring</small>Review a PR</a>
-      <a href="simulate.html#people"><small>4 · Cross-functional</small>Stakeholder week</a>
-      <a href="oncall.html"><small>5 · Operational excellence</small>On-call shift</a>
-      <a href="duty.html"><small>Regulatory</small>Consumer Duty</a>
-      <a href="streaming.html"><small>Batch and real-time</small>Streaming</a>
-    </div>
+    <a class="lakehouse-cta" href="simulate.html#people"><b>Chapter 4 · Work with the business</b><span>Thirteen requests from Finance, Marketing, HR, Executive and Product, and from the architecture, platform and governance teams. Choose how to respond, and see what each choice does to trust, focus and risk.</span><i>→</i></a>
     <p class="regulated"><b>In a regulated firm,</b> controls stay on. Classification, masking and the contract are code, so they take minutes. Client data leaving the boundary, a certified regulatory measure, an access grant or a widely used schema is always a one-way door, and goes to the lead and the data owner.</p>
   </div>
 </section>

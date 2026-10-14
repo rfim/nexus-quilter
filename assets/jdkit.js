@@ -1,4 +1,4 @@
-// Small helpers shared by the JD simulation pages: the header, the lakehouse handle and an
+// Small helpers shared by the How I work chapters: the header, the lakehouse handle and an
 // "evidence" block that runs real SQL against the Delta tables and shows the result.
 import { openLakehouse } from "./engine.js";
 
@@ -6,23 +6,35 @@ export const $ = (s, r = document) => r.querySelector(s);
 export const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 export const fmt = (n, d = 0) => Number(n).toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: d });
 
+// The story: seven chapters in two halves (Lead, Serve), all on the same lakehouse.
 export const PAGES = [
-  { href: "design.html", label: "Design review", jd: "1 · Technical Leadership" },
-  { href: "release.html", label: "Requirement to release", jd: "2 · Engineering Delivery" },
-  { href: "review.html", label: "Review a PR", jd: "3 · Mentoring" },
-  { href: "simulate.html#people", label: "Stakeholder week", jd: "4 · Cross-Functional" },
-  { href: "oncall.html", label: "On-call shift", jd: "5 · Operational Excellence" },
-  { href: "duty.html", label: "Consumer Duty", jd: "Regulatory" },
-  { href: "streaming.html", label: "Streaming", jd: "Skills · real-time" },
+  { href: "design.html", label: "Design it", half: "Lead", n: 1, jd: "Technical leadership & domain ownership" },
+  { href: "release.html", label: "Ship it", half: "Lead", n: 2, jd: "Engineering delivery" },
+  { href: "review.html", label: "Grow the team", half: "Lead", n: 3, jd: "Mentoring & capability development" },
+  { href: "simulate.html#people", label: "Work with the business", half: "Serve", n: 4, jd: "Cross-functional collaboration" },
+  { href: "oncall.html", label: "Keep it running", half: "Serve", n: 5, jd: "Operational excellence" },
+  { href: "duty.html", label: "Protect clients", half: "Serve", n: 6, jd: "Regulatory: Consumer Duty" },
+  { href: "streaming.html", label: "Keep it live", half: "Serve", n: 7, jd: "Batch and real-time processing" },
 ];
 
 export function header(current) {
   const el = document.createElement("header");
   el.className = "site-header";
-  el.innerHTML = `<a class="brand" href="simulate.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">Simulations</span></span></a>
-    <nav aria-label="Simulations">${PAGES.map((p) => `<a href="${p.href}"${p.href === current ? ' aria-current="page" style="color:var(--mint)"' : ""} title="${esc(p.jd)}">${esc(p.label)}</a>`).join("")}
-    <a href="lakehouse.html" class="nav-code">Lakehouse ↗</a></nav>`;
+  el.innerHTML = `<a class="brand" href="simulate.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">How I work</span></span></a>
+    <nav aria-label="How I work">${PAGES.map((p) => `<a href="${p.href}"${p.href === current ? ' aria-current="page" style="color:var(--mint)"' : ""} title="${esc(p.half)} · ${esc(p.jd)}">${p.n} ${esc(p.label)}</a>`).join("")}
+    <a href="lakehouse.html" class="nav-code"><span class="live" aria-hidden="true"></span>Lakehouse</a></nav>`;
   document.body.prepend(el);
+  const i = PAGES.findIndex((p) => p.href === current);
+  if (i >= 0) {
+    const crumb = document.querySelector(".jd-crumb");
+    if (crumb) crumb.textContent = `How I work · ${PAGES[i].half} · Chapter ${PAGES[i].n} of ${PAGES.length}`;
+    const prev = PAGES[i - 1], next = PAGES[i + 1];
+    const nav = document.createElement("nav");
+    nav.className = "story-nav"; nav.setAttribute("aria-label", "Chapters");
+    nav.innerHTML = `${prev ? `<a href="${prev.href}"><small>← Chapter ${prev.n}</small>${esc(prev.label)}</a>` : `<a href="simulate.html"><small>← Start</small>How I work</a>`}
+      ${next ? `<a class="next" href="${next.href}"><small>Chapter ${next.n} →</small>${esc(next.label)}</a>` : `<a class="next" href="lakehouse.html"><small>The foundation →</small>Open the lakehouse</a>`}`;
+    document.querySelector("main").append(nav);
+  }
 }
 
 let lake;

@@ -2,7 +2,7 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Streaming · NEXUS Simulations</title>
+<title>Keep it live · How I work · VIM</title>
 <meta name="description" content="Batch and real-time: stream the platform's transactions through micro-batches, with MERGE, watermarks and late corrections, and compare the result with the lakehouse.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
@@ -10,9 +10,9 @@
 <body class="sim jd-page">
 <main class="shell sim-main">
   <p class="jd-crumb">Skills · Batch and real-time processing</p>
-  <h1>Stream it, then check it against the lakehouse</h1>
-  <p class="jd-lede">Platform Ops want today's flows as they happen. Here the platform's 13,242 change events (with 180 replayed duplicates, 15 malformed rows and 40 corrections that arrive months late) flow through Structured Streaming-style micro-batches. Choose the settings, run it, and see whether the stream agrees with the batch lakehouse.</p>
-  <blockquote class="jd-quote">From the job description: <b>“Experience designing batch and real-time data processing solutions”</b>, with Azure Event Hubs and Databricks Structured Streaming as the usual tools. Each micro-batch below is a real DuckDB MERGE, like <code>foreachBatch</code> into a Delta table.</blockquote>
+  <h1>Keep it live</h1>
+  <p class="jd-lede">Platform Ops want today's flows as they happen. I stream the platform's 13,242 events in small batches, including replays, bad rows and corrections that arrive months late. Then I check the result against the books. Pick the settings and see what holds up.</p>
+  <blockquote class="jd-quote">What the job description asks: <b>“Experience designing batch and real-time data processing solutions”</b>, with Azure Event Hubs and Databricks Structured Streaming as the usual tools. Each micro-batch below is a real DuckDB MERGE, like <code>foreachBatch</code> into a Delta table.</blockquote>
   <p class="engine-line" id="engine">Starting the lakehouse…</p>
   <div class="card"><span class="step">Settings</span><h2>How should the stream run?</h2>
     <fieldset class="scenarios" id="opts" style="margin-top:.6rem"><legend>Choose one in each group</legend>

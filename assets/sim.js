@@ -15,7 +15,7 @@ function showTab(key) {
 }
 document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => {
   showTab(b.dataset.tab);
-  if (b.classList.contains("jd-card")) $(".sim-tabs").scrollIntoView({ behavior: "smooth" });
+  if (!b.closest(".sim-tabs")) $(".sim-tabs").scrollIntoView({ behavior: "smooth" });
 }));
 
 // =============================================================================================
@@ -511,7 +511,7 @@ function renderOutcome({ on, first, final, reconIssued, incidents, notifications
       : `<p>Nothing published was wrong. ${on.replay ? "The replay changed 0 rows. " : ""}${q?.quarantined ? `${q.quarantined} bad rows are quarantined with an owner, not in any product.` : ""}</p>`}</div>
   </div>
   ${notifications.length ? `<h3 style="margin-top:1.4rem">What the owners receive</h3>${notifications.map((n) => `<div class="msg"><small>To ${esc(n.to)}</small><b>${esc(n.subject)}</b><p style="margin:.3rem 0 0">${esc(n.body)}</p></div>`).join("")}
-  <p class="muted">How to handle the people side of this is in the <a href="#" data-goto="people" style="color:var(--green);font-weight:700">Stakeholder week</a> simulation.</p>` : ""}`;
+  <p class="muted">How to handle the people side of this is in the <a href="#" data-goto="people" style="color:var(--green);font-weight:700">week with the business</a> chapter.</p>` : ""}`;
   const go = $("#outcome [data-goto]");
   if (go) go.onclick = (e) => { e.preventDefault(); showTab("people"); window.scrollTo({ top: $(".sim-tabs").offsetTop - 80, behavior: "smooth" }); };
 }
@@ -582,7 +582,7 @@ const WEEK = [
         f: "The need is real. A plain no without an alternative loses the relationship." },
     ] },
   { when: "Wednesday 08:00", from: "Product", title: "The late batch didn't load",
-    msg: "Overnight the platform renamed amount_gbp to amount. The load stopped. (Try it: tick 'Upstream schema change' in the ELT simulation.)",
+    msg: "Overnight the platform renamed amount_gbp to amount. The load stopped. (Try it: tick 'Upstream schema change' in “How the data gets there”.)",
     options: [
       { t: "Hotfix the code to accept the new name and rerun.", d: { focus: -5, risk: 15 },
         f: "It works until the next unannounced change. The contract exists so the interface changes on purpose." },
@@ -607,7 +607,7 @@ const WEEK = [
       { t: "Agree: it's the board's call.", d: { Partners: 5, risk: 15 },
         f: "A second copy of every product means a second set of masks to keep in step, and two places a number can drift." },
       { t: "Send a one-page options paper: read gold in place through OneLake shortcuts and Direct Lake, with a spike that tests masks and row filters end to end; bring it to Monday's board.", best: true, d: { Partners: 15, risk: -5, focus: -5 },
-        f: "Architecture owns the target state, so I bring evidence to their forum, not an argument in a corridor. The design review simulation is the full version of this decision." },
+        f: "Architecture owns the target state, so I bring evidence to their forum, not an argument in a corridor. Chapter 1, “Design it”, is the full version of this decision." },
       { t: "Push back hard: Databricks is enough.", d: { Partners: -15 },
         f: "Fabric is the organisation's direction. Fighting it costs the relationship and the influence I need for the parts that matter." },
     ] },

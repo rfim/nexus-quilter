@@ -90,3 +90,5 @@
   .elt-body{grid-template-columns:1fr}
   .meters{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+.jd-hub{border-radius:14px;padding:clamp(1.2rem,3vw,2.4rem);margin:0 0 2rem}
+.jd-hub .chapter,.jd-hub .foundation a{text-decoration:none}

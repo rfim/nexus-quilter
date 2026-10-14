@@ -3,50 +3,59 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NEXUS Simulations</title>
-<meta name="description" content="Simulations mapped to each accountability in the Lead Data Engineer job description, all running on the same in-browser Delta lakehouse.">
+<title>How I work · VIM · Lead Data Engineer</title>
+<meta name="description" content="How VIM leads and serves, told as seven chapters you can try, all running on the same in-browser Delta lakehouse.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
 <link rel="stylesheet" href="assets/sim.css">
 </head>
 <body class="sim">
 <header class="site-header">
-  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">Simulations</span></span></a>
+  <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">How I work</span></span></a>
   <nav aria-label="Primary">
     <a href="index.html">Portfolio</a>
-    <a href="lakehouse.html">Lakehouse</a>
-    <a href="https://github.com/rfim/nexus-quilter" class="nav-code">See the code ↗</a>
+    <a href="design.html">Start at chapter 1</a>
+    <a href="lakehouse.html" class="nav-code"><span class="live" aria-hidden="true"></span>Lakehouse</a>
   </nav>
 </header>
 
 <main class="shell sim-main">
-  <section class="jd" aria-labelledby="jd-title">
-    <h1 id="jd-title">Simulations for the role</h1>
-    <p>One simulation for each accountability in the Lead Data Engineer job description, plus the regulatory and real-time parts of the role. They all run on the same lakehouse: the Delta tables my Spark pipeline built, queried in your browser with the same grants and masks.</p>
-    <div class="jd-grid">
-      <a class="jd-card" href="design.html"><small>1 · Technical leadership &amp; domain ownership</small><b>Design review</b><span>Lead the design of a Consumer Duty data product: six decisions, live evidence, and the ADR at the end.</span></a>
-      <a class="jd-card" href="release.html"><small>2 · Engineering delivery</small><b>Requirement to release</b><span>A Finance request becomes a contract change, a plan and a pull request through a CI gate with a real metric diff.</span></a>
-      <a class="jd-card" href="review.html"><small>3 · Mentoring &amp; capability</small><b>Review a PR</b><span>A new engineer's first PR. Find the problems, then pick the comments that teach.</span></a>
-      <button class="jd-card" data-tab="people"><small>4 · Cross-functional collaboration</small><b>Stakeholder week</b><span>Thirteen requests from Finance, Marketing, HR, Executive, Product, architecture, platform and governance.</span></button>
-      <a class="jd-card" href="oncall.html"><small>5 · Operational excellence</small><b>On-call shift</b><span>Triage alerts, investigate a real reconciliation break, run the incident and tune a noisy alert.</span></a>
-      <button class="jd-card" data-tab="elt"><small>5 · Operational excellence</small><b>ELT end to end</b><span>Run the whole pipeline in your browser, from landing files to checked products. Add an incident and watch what happens.</span></button>
-      <a class="jd-card" href="duty.html"><small>Regulatory · Consumer Duty</small><b>Vulnerable clients</b><span>Answer a Consumer Duty question about vulnerable clients without anyone seeing who is vulnerable.</span></a>
-      <a class="jd-card" href="streaming.html"><small>Skills · batch and real-time</small><b>Streaming</b><span>Micro-batches, MERGE and watermarks, with late corrections, checked against the lakehouse.</span></a>
-      <a class="jd-card" href="lakehouse.html"><small>Governance · security · GDPR</small><b>Lakehouse</b><span>The Delta tables themselves: grants, masks, row filters and time travel, by persona.</span></a>
+  <section class="hiw jd-hub" aria-labelledby="jd-title">
+    <div class="hiw-inner">
+      <p class="eyebrow" style="color:var(--mint);font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:.75rem;margin:0">How I work · lead and serve</p>
+      <h2 id="jd-title" style="font-size:clamp(2rem,4vw,3rem);margin:.3rem 0 .5rem">My first weeks as your Lead Data Engineer</h2>
+      <p class="lede">Seven moments from the job, told as a story. In each one you make the call, and I show what I'd do and why. The first three are about leading the team and the platform. The last four are about serving the business and its clients.</p>
+      <div class="hiw-grid">
+        <div class="hiw-half"><h3>Lead<b>The team and the platform</b></h3>
+          <a class="chapter" href="design.html"><i>1</i><b>Design it</b><span>A Consumer Duty request arrives. I lead the design, one decision at a time.</span></a>
+          <a class="chapter" href="release.html"><i>2</i><b>Ship it</b><span>Finance wants a change. I take it from the first question to production.</span></a>
+          <a class="chapter" href="review.html"><i>3</i><b>Grow the team</b><span>A new engineer's first pull request. I review it so they learn.</span></a>
+        </div>
+        <div class="hiw-half"><h3>Serve<b>The business and its clients</b></h3>
+          <button class="chapter" data-tab="people"><i>4</i><b>Work with the business</b><span>A week of requests from every department and partner team.</span></button>
+          <a class="chapter" href="oncall.html"><i>5</i><b>Keep it running</b><span>Monday, 07:02, on call. A board number is wrong.</span></a>
+          <a class="chapter" href="duty.html"><i>6</i><b>Protect clients</b><span>Are vulnerable clients waiting longer? Answer it without exposing anyone.</span></a>
+          <a class="chapter" href="streaming.html"><i>7</i><b>Keep it live</b><span>Ops want today's flows now. Stream them, then check against the books.</span></a>
+        </div>
+      </div>
+      <div class="foundation">
+        <div><b><span class="live" aria-hidden="true"></span>The foundation: the lakehouse</b><p>Every chapter runs on the same Delta tables my Databricks Python built, opened in your browser with the same grants, masks and row filters. That's why the numbers agree from page to page.</p></div>
+        <div class="btns"><a href="lakehouse.html">Open the lakehouse</a><button class="ghost" data-tab="elt" style="display:inline-flex;align-items:center;background:#fff;color:var(--green);border:1px solid var(--green);font-weight:800;padding:.7rem 1.1rem;border-radius:6px;font:inherit;font-weight:800;cursor:pointer">How the data gets there</button></div>
+      </div>
     </div>
   </section>
 
-  <nav class="sim-tabs" role="tablist" aria-label="Simulations">
-    <button role="tab" data-tab="elt" aria-selected="true">ELT end to end</button>
-    <button role="tab" data-tab="people" aria-selected="false">Stakeholder week</button>
+  <nav class="sim-tabs" role="tablist" aria-label="Chapters on this page">
+    <button role="tab" data-tab="elt" aria-selected="true">How the data gets there</button>
+    <button role="tab" data-tab="people" aria-selected="false">4 · Work with the business</button>
   </nav>
 
   <!-- ELT -------------------------------------------------------------------------------- -->
   <section id="tab-elt" class="sim-tab">
     <div class="elt-head">
       <div>
-        <h2>ELT end to end</h2>
-        <p>Your browser fetches the raw landing files, loads them into bronze with MERGE, splits bad rows into quarantine, builds silver and gold, checks every department's contract, then takes a late batch and restates. Every step is real SQL in DuckDB-WASM; click a task to see what it ran. With the default scenarios, the counts should match the Spark run.</p>
+        <h2>How the data gets there</h2>
+        <p>Before any chapter, the data has to arrive. Press run: your browser loads the raw files, sets bad rows aside, builds every department's product and checks each contract. Then a late batch of corrections arrives. With the default settings it matches the Spark run exactly. Click any step to see the SQL it ran.</p>
       </div>
       <div class="elt-run"><button class="btn-run" id="run" disabled>Starting engine…</button><span id="engine" class="engine" role="status" aria-live="polite"></span></div>
     </div>
@@ -63,13 +72,14 @@
   <section id="tab-people" class="sim-tab" hidden>
     <div class="elt-head">
       <div>
-        <h2>Stakeholder week</h2>
-        <p>Monday to Friday, thirteen requests from the five departments and the architecture, platform and governance teams. There's no trick answer, but each choice moves department trust, the team's focus and the platform's risk. After each one I explain what I'd do and why.</p>
+        <h2>Chapter 4 · Work with the business</h2>
+        <p>Monday to Friday: thirteen requests from Finance, Marketing, HR, Executive and Product, and from the architecture, platform and governance teams. Each choice moves trust, the team's focus and risk. After each one I say what I'd do and why.</p>
       </div>
       <button class="btn-run ghost" id="restart">Start again</button>
     </div>
     <div class="meters" id="meters"></div>
     <div class="scenario" id="scenario"></div>
+    <nav class="story-nav" aria-label="Chapters"><a href="review.html"><small>← Chapter 3</small>Grow the team</a><a class="next" href="oncall.html"><small>Chapter 5 →</small>Keep it running</a></nav>
   </section>
 </main>
 
