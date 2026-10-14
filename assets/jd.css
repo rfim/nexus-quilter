@@ -103,3 +103,22 @@
 .ask-in input{flex:1;font:inherit;padding:.65rem .8rem;border:1px solid var(--line);border-radius:6px}
 .how-steps{margin:.4rem 0 0;padding-left:1.2rem;font-size:.92rem}.how-steps li{margin:.35rem 0}
 @media (max-width:900px){.ask-grid{grid-template-columns:minmax(0,1fr)}.thread{height:460px}.mini div{grid-template-columns:6rem 1fr 5rem}}
+
+/* chapter 8, part 1: building the semantic layer */
+.rep{display:grid;grid-template-columns:13rem minmax(0,1fr) 9rem;gap:.8rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;margin:.5rem 0;background:#fff;transition:all .3s}
+.rep small{display:block;color:var(--muted);font-size:.78rem}
+.rep pre{margin:0;background:#0d1f16;color:#d4d4d4;border-radius:6px;padding:.45rem .6rem;font:11px/1.45 var(--font-mono);overflow:auto;white-space:pre}
+.rep .val{font:700 1.05rem var(--font-mono);color:#9aa89f;text-align:right}
+.rep.ran .val{color:var(--forest);animation:logIn .4s}
+.rep.ran{border-color:#cfe3d6}
+.tests{display:grid;gap:.4rem;margin:.6rem 0}
+.tst{display:grid;grid-template-columns:2rem 1fr auto;gap:.6rem;align-items:center;border:1px solid var(--line);border-radius:8px;padding:.55rem .8rem;background:#fff}
+.tst small{display:block;color:var(--muted);font-size:.78rem}
+.tst .st{width:1.6rem;height:1.6rem;border-radius:50%;display:grid;place-items:center;background:#eef2ef;font-weight:800}
+.tst.pass .st{background:var(--green2);color:#fff}.tst.warn .st{background:#e0a630;color:#fff}.tst.fail .st{background:#c0392b;color:#fff}
+.tst .tv{font:12px var(--font-mono);color:#33463a}
+.pub{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem;margin:.7rem 0}
+.pub div{border:1px dashed #cfd9d2;border-radius:8px;padding:.7rem;text-align:center;font-size:.84rem;font-weight:700;color:#9aa89f;transition:all .35s}
+.pub div.on{border:1px solid var(--green);background:#e7f1ea;color:var(--forest);box-shadow:0 0 0 3px rgba(15,123,63,.12)}
+@media (max-width:900px){.rep{grid-template-columns:minmax(0,1fr)}.rep .val{text-align:left}.pub{grid-template-columns:1fr 1fr}}
+.tst.pass,.tst.warn,.tst.fail{color:inherit;font-weight:400}.tst b{font-weight:700}

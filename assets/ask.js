@@ -1,5 +1,5 @@
 // Chapter 8 · Let them ask: the semantic layer as self-service, governed and cited.
-import { $, esc, fmt, header, lakehouse, table } from "./jdkit.js";
+import { $, esc, fmt, header, lakehouse, table, evidence, choose } from "./jdkit.js";
 
 header("ask.html");
 
@@ -37,7 +37,7 @@ ${Object.entries(v.measures).map(([n, [e, , , d]]) => `  - name: ${n}\n    expr:
 
 // question → {view, measure, dims, window} using words that exist in the semantic layer
 const MATCH = [
-  [/net flow|flows?\b/, "finance", "net_flows"], [/inflow|came in|money in/, "finance", "gross_inflows"], [/outflow|went out|money out/, "finance", "gross_outflows"],
+  [/net flow|flows?\b|net new money|\bnnm\b/, "finance", "net_flows"], [/inflow|came in|money in/, "finance", "gross_inflows"], [/outflow|went out|money out/, "finance", "gross_outflows"],
   [/\bcpa\b|cost per acq|acquisition cost/, "marketing", "cpa"], [/new client|acquired|acquisition/, "marketing", "new_clients"], [/spend|budget/, "marketing", "spend"],
   [/attrition|leaver|turnover/, "hr", "attrition"], [/headcount|how many (people|staff|colleagues)/, "hr", "headcount"],
   [/\baua\b|assets under/, "exec", "aua"], [/active client/, "exec", "active_clients"],
@@ -130,6 +130,7 @@ const CHIPS = ["What were net flows last month by wrapper?", "What's our cost pe
   lake = await lakehouse($("#engine"));
   const [mx] = await lake.rows("SELECT max(month) AS m FROM nexus.gold.executive_kpis_monthly"); if (mx?.m) LATEST = String(mx.m).slice(0, 10);
   $("#engine").textContent = "Live lakehouse ready: answers run on the real Delta tables, with the asker's permissions.";
+  build();
   const people = ["exec", "affluent", "finance", "marketing", "hr", "duty"];
   $("#who").innerHTML = people.map((k) => `<option value="${k}">${esc(lake.PERSONAS.find((p) => p.key === k).label)}</option>`).join("");
   $("#who").onchange = (e) => { who = e.target.value; say(`Now answering as <b>${esc(lake.PERSONAS.find((p) => p.key === who).label)}</b>. Same questions, different permissions.`, "bot sys"); };
@@ -142,3 +143,92 @@ const CHIPS = ["What were net flows last month by wrapper?", "What's our cost pe
   $("#semtabs").querySelectorAll("button").forEach((b) => b.onclick = () => showView(b.dataset.k));
   showView("finance");
 })().catch((e) => { $("#engine").textContent = `Could not start: ${e.message}`; });
+
+// ---- Part 1: how a measure gets into the semantic layer -------------------------------------
+const FACT = "nexus.gold.fct_platform_transaction";
+const REPORTS = [
+  { name: "Board pack", who: "Finance", types: "'contribution','withdrawal','fee'", note: "contributions, withdrawals and fees" },
+  { name: "Executive MI deck", who: "Strategy", types: null, note: "every transaction type, including switches and income" },
+  { name: "Ops dashboard", who: "Platform Ops", types: "'contribution','withdrawal'", note: "contributions and withdrawals, no fees" },
+];
+const qOf = (r) => `SELECT round(sum(amount_gbp), 2) AS net_flows_gbp FROM ${FACT}${r.types ? ` WHERE transaction_type IN (${r.types})` : ""}`;
+const MV = `version: 0.1
+name:    nexus.semantic.finance_flows
+source:  nexus.gold.fct_platform_transaction
+owner:   finance-reporting-lead@example.com     # signed off the definition
+filter:  transaction_type IN ('contribution', 'withdrawal', 'fee')
+dimensions:
+  - {name: wrapper,      expr: wrapper_code}
+  - {name: legal_entity, expr: legal_entity}
+  - {name: channel,      expr: channel}          # the client's channel at trade time
+  - {name: month,        expr: date_trunc('month', trade_date)}
+measures:
+  - name: net_flows
+    expr: sum(amount_gbp)
+    comment: "Contributions minus withdrawals and fees. Switches and income excluded."
+    format: {type: currency, currency_code: GBP}`;
+const PUB = `-- deployed by CI from the same repo
+CREATE OR REPLACE VIEW nexus.semantic.finance_flows WITH METRICS LANGUAGE YAML AS $$ ...metric view above... $$;
+ALTER VIEW nexus.semantic.finance_flows SET TAGS ('certified' = 'true', 'owner' = 'finance');
+COMMENT ON VIEW nexus.semantic.finance_flows IS
+  'Net flows. Synonyms: net new money, NNM, flows. Reconciles to the general ledger daily.';
+GRANT SELECT ON VIEW nexus.semantic.finance_flows TO grp_finance, grp_exec_mi;`;
+
+async function build() {
+  let step = 0;
+  const prog = () => { $("#bprog").innerHTML = [1, 2, 3, 4, 5].map((i) => `<i class="${i <= step ? "done" : ""}"></i>`).join(""); };
+  prog();
+  $("#b1ev").innerHTML = REPORTS.map((r, i) => `<div class="rep" id="rep${i}"><div><b>${esc(r.name)}</b><small>${esc(r.who)} · ${esc(r.note)}</small></div><pre>${NexusHL.hl(qOf(r), "sql")}</pre><span class="val">?</span></div>`).join("");
+  $("#b1go").onclick = async () => {
+    $("#b1go").disabled = true;
+    const vals = [];
+    for (let i = 0; i < REPORTS.length; i++) {
+      const [row] = await lake.rows(qOf(REPORTS[i])); vals.push(row.net_flows_gbp);
+      $(`#rep${i} .val`).textContent = `£${fmt(row.net_flows_gbp, 2)}`; $(`#rep${i}`).classList.add("ran");
+      await new Promise((r) => setTimeout(r, 350));
+    }
+    const spread = Math.max(...vals) - Math.min(...vals);
+    $("#b1fb").innerHTML = `<div class="fb"><b>Three numbers for one question, £${fmt(spread, 0)} apart.</b> Nobody is wrong on purpose: each query was reasonable when it was written. This is why a definition has to be agreed once, with an owner, before it goes anywhere near a dashboard or a chatbot.</div>`;
+    step = 1; prog(); $("#b1go").hidden = true; $("#b2").hidden = false;
+    choose($("#b2c"), [
+      { t: "Take the biggest number: it looks best in the board pack", gain: "A nice headline.", cost: "Switches move money between funds; counting them invents inflows. It won't reconcile to the ledger." },
+      { t: "Average the three", gain: "Nobody loses the argument.", cost: "Now there are four numbers, and one of them matches nothing." },
+      { t: "Finance's definition: contributions minus withdrawals and fees, switches and income excluded, reconciling to the ledger daily", best: true,
+        why: "Finance owns the number in the annual report, and their definition is the one that reconciles to the general ledger. Strategy and Ops agree to it in one meeting because they can see their own numbers explained line by line, and the difference becomes a documented choice.",
+        gain: "One number everyone can trace.", cost: "Two teams change a dashboard. That's a small price." },
+    ], { onPick: () => { step = 2; prog(); $("#b3").hidden = false; typeYaml(); } });
+  };
+  async function typeYaml() {
+    const lines = MV.split("\n");
+    for (let i = 1; i <= lines.length; i++) { $("#b3y").innerHTML = NexusHL.hl(lines.slice(0, i).join("\n"), "yaml"); await new Promise((r) => setTimeout(r, 70)); }
+    step = 3; prog(); $("#b4").hidden = false;
+    $("#b4t").innerHTML = [["equals", "Equals the certified product", "metric view total = gold finance_net_flows_daily, to the penny"],
+      ["grain", "Grain holds", "one row per trade_date × wrapper × legal_entity, no duplicates"],
+      ["ledger", "Reconciles to the ledger", "every day within £0.01 of the general ledger"]].map(([k, t, d]) => `<div class="tst" id="t-${k}"><span class="st">·</span><div><b>${t}</b><small>${d}</small></div><span class="tv"></span></div>`).join("");
+  }
+  $("#b4go").onclick = async () => {
+    $("#b4go").disabled = true;
+    const set = (k, ok, v, warn) => { const el = $(`#t-${k}`); el.classList.add(ok ? "pass" : warn ? "warn" : "fail"); $(".st", el).textContent = ok ? "✓" : warn ? "!" : "✗"; $(".tv", el).textContent = v; };
+    const [a] = await lake.rows(`SELECT round(sum(amount_gbp), 2) AS mv FROM ${FACT} WHERE transaction_type IN ('contribution','withdrawal','fee')`);
+    const [b] = await lake.rows("SELECT round(sum(net_flows_gbp), 2) AS cert FROM nexus.gold.finance_net_flows_daily");
+    set("equals", Math.abs(a.mv - b.cert) < 0.01, `£${fmt(a.mv, 2)} = £${fmt(b.cert, 2)}`);
+    await new Promise((r) => setTimeout(r, 400));
+    const [g] = await lake.rows("SELECT count(*) - count(DISTINCT (trade_date, wrapper_code, legal_entity)) AS dups FROM nexus.gold.finance_net_flows_daily");
+    set("grain", g.dups === 0, `${g.dups} duplicates`);
+    await new Promise((r) => setTimeout(r, 400));
+    const [l] = await lake.rows(`SELECT count(*) AS breaks FROM (
+      SELECT n.trade_date, n.wrapper_code, sum(n.net_flows_gbp) AS p, any_value(l.ledger_net_flows_gbp) AS g
+      FROM nexus.gold.finance_net_flows_daily n JOIN nexus.silver.finance_ledger l USING (trade_date, wrapper_code)
+      GROUP BY ALL HAVING abs(g - p) > 0.01)`);
+    set("ledger", l.breaks === 0, `${l.breaks} known break (14 Aug, ISA, £250: flagged, owner told)`, l.breaks === 1);
+    $("#b4go").hidden = true; step = 4; prog(); $("#b5").hidden = false; $("#b5y").innerHTML = NexusHL.hl(PUB, "sql");
+  };
+  $("#b5go").onclick = async () => {
+    $("#b5go").disabled = true;
+    for (const d of document.querySelectorAll("#b5p div")) { d.classList.add("on"); await new Promise((r) => setTimeout(r, 380)); }
+    step = 5; prog(); $("#b5go").hidden = true;
+    $("#b5fb").innerHTML = `<div class="fb"><b>Published.</b> Power BI, Fabric, notebooks and the chatbot now read the same definition, with the same grants. The synonyms in the comment are what let the chatbot understand “net new money”. <a href="#chat-h">Ask it below ↓</a></div>`;
+    document.querySelector("#chat-h").scrollIntoView({ behavior: "smooth" });
+    say(`<b>New certified measure:</b> net_flows (Finance), synonyms “net new money”, “NNM”. Try “net new money last month”.`, "bot sys");
+  };
+}

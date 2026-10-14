@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Let them ask · How I work · VIM</title>
-<meta name="description" content="The semantic layer becomes self-service: a chat that answers only from certified metric views, runs as the person asking, and cites its source.">
+<meta name="description" content="How a semantic layer is built, from three conflicting numbers to one certified measure, and how it becomes self-service: a chat that answers only from certified metric views, as the person asking, and cites its source.">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
 </head>
@@ -11,9 +11,27 @@
 <main class="shell sim-main">
   <p class="jd-crumb">How I work</p>
   <h1>Let them ask</h1>
-  <p class="jd-lede">The best report is the one nobody has to request. Once every number lives in a semantic layer, with one definition and an owner, people can just ask. Pick who you are, ask a question, and watch it go from words to a certified measure to SQL, run on the live lakehouse as you, with the source cited.</p>
+  <p class="jd-lede">The best report is the one nobody has to request. First, I build the semantic layer: find the competing definitions, agree one with its owner, write it as code, test it and publish it. Then people can just ask, and every answer runs on the live lakehouse as them, with the source cited.</p>
   <blockquote class="jd-quote">What the job description asks: <b>“Enable self-service analytics through well-designed data products and semantic layers”</b> and <b>“Explore and apply AI capabilities responsibly.”</b> At Lifepal, putting definitions into the semantic layer first cut ad-hoc requests by 60%.</blockquote>
   <p class="engine-line" id="engine">Starting the lakehouse…</p>
+  <section class="build" id="build" aria-labelledby="build-h">
+    <div class="card req"><span class="step">Part 1 · Build it</span><h2 id="build-h">Before anyone can ask, the number needs one definition</h2>
+      <p>Here's how one measure, net flows, gets into the semantic layer. Each step runs on the live lakehouse.</p></div>
+    <div class="progress" id="bprog"></div>
+    <div class="card" id="b1"><span class="step">Step 1 · Find it in the wild</span><h2>Three reports, three numbers</h2>
+      <p>Before writing anything, I look for every place “net flows” is already calculated. Three reports were each built with their own query.</p><div id="b1ev"></div><div id="b1fb"></div>
+      <button class="small-btn solid" id="b1go">Run all three on the lakehouse</button></div>
+    <div class="card" id="b2" hidden><span class="step">Step 2 · Agree it with the owner</span><h2>Which definition does Finance sign off?</h2><div id="b2c"></div></div>
+    <div class="card" id="b3" hidden><span class="step">Step 3 · Write the metric view</span><h2>The definition, as code</h2>
+      <p>One YAML file in the repo. The measure is defined once; dimensions say how people may slice it.</p><pre class="sem-code" id="b3y"></pre></div>
+    <div class="card" id="b4" hidden><span class="step">Step 4 · Test it</span><h2>Prove it before anyone sees it</h2>
+      <p>The same checks run in CI on every change to the view.</p><div class="tests" id="b4t"></div><button class="small-btn solid" id="b4go">Run the tests</button></div>
+    <div class="card" id="b5" hidden><span class="step">Step 5 · Publish it</span><h2>Certified, governed, and findable by the chatbot</h2>
+      <pre class="sem-code" id="b5y"></pre>
+      <div class="pub" id="b5p"><div data-k="bi">Power BI · Direct Lake</div><div data-k="fabric">Fabric · OneLake</div><div data-k="genie">Ask NEXUS (chatbot)</div><div data-k="nb">Notebooks · SQL</div></div>
+      <button class="small-btn solid" id="b5go">Publish to Unity Catalog</button><div id="b5fb"></div></div>
+  </section>
+  <div class="card req" style="margin-top:1.4rem"><span class="step">Part 2 · Ask it</span><h2>Now anyone can ask</h2><p>Every measure below was built the same way. Try the synonym too: “net new money last month”.</p></div>
   <div class="ask-grid">
     <section class="card sem" aria-labelledby="sem-h"><span class="step">The semantic layer</span><h2 id="sem-h">Metric views, one per department</h2>
       <p class="muted">Each measure is defined once, with an owner. The chat can only use what's here.</p>
