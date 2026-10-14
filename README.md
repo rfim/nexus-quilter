@@ -24,7 +24,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 
 ## How I work: lead and serve
 
-`simulate.html` starts the story: seven chapters, three about leading (design it, ship it, grow the team) and four about serving (the business, on-call, Consumer Duty, real time). Every chapter runs on the same in-browser lakehouse (`assets/engine.js`), so the numbers agree from page to page.
+`simulate.html` starts the story: chapters about leading (design it, ship it, grow the team) and four about serving (the business, on-call, Consumer Duty, real time). Every chapter runs on the same in-browser lakehouse (`assets/engine.js`), so the numbers agree from page to page.
 
 - **ELT end to end** (engineering delivery, operational excellence). The browser fetches the raw landing files and runs the pipeline as DuckDB SQL: MERGE into bronze, quality split from the source contract, SCD2 and conformed silver, the incremental fact and five products, every department's contract checks, a late batch and a restatement, then messages to the data owners. Scenarios: replay every feed, malformed rows, late corrections, an upstream schema change (the load stops before writing, with an incident card), and the planted ledger break. With the defaults it matches the Spark run: 13,022 in bronze, 15 quarantined, 13,007 valid, 39/40 checks.
 - **Stakeholder week** (4 · cross-functional collaboration). Thirteen requests from Finance, Marketing, HR, Executive, Product and the architecture, platform and governance teams; each choice moves trust, team focus and platform risk, with my reasoning after each one.

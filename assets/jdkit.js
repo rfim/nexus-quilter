@@ -6,7 +6,7 @@ export const $ = (s, r = document) => r.querySelector(s);
 export const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 export const fmt = (n, d = 0) => Number(n).toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: d });
 
-// The story: seven chapters in two halves (Lead, Serve), all on the same lakehouse.
+// The story: chapters in two halves (Lead, Serve), all on the same lakehouse.
 export const PAGES = [
   { href: "design.html", label: "Design it", half: "Lead", n: 1, jd: "Technical leadership & domain ownership" },
   { href: "release.html", label: "Ship it", half: "Lead", n: 2, jd: "Engineering delivery" },
@@ -27,7 +27,7 @@ export function header(current) {
   const i = PAGES.findIndex((p) => p.href === current);
   if (i >= 0) {
     const crumb = document.querySelector(".jd-crumb");
-    if (crumb) crumb.textContent = `How I work · ${PAGES[i].half} · Chapter ${PAGES[i].n} of ${PAGES.length}`;
+    if (crumb) crumb.textContent = `How I work · ${PAGES[i].half} · Chapter ${PAGES[i].n}`;
     const prev = PAGES[i - 1], next = PAGES[i + 1];
     const nav = document.createElement("nav");
     nav.className = "story-nav"; nav.setAttribute("aria-label", "Chapters");
