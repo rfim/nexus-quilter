@@ -2,7 +2,7 @@
 
 An independent Lead Data Engineer portfolio by R. Firman Insan Muhammad (VIM), for the Chief Data Office at Quilter.
 
-**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **How I work:** https://rfim.github.io/nexus-quilter/simulate.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf) · **One page:** [assets/VIM_Quilter_one_page.pdf](assets/VIM_Quilter_one_page.pdf)
+**Live site:** https://rfim.github.io/nexus-quilter/ · **Lakehouse:** https://rfim.github.io/nexus-quilter/lakehouse.html · **How I work:** https://rfim.github.io/nexus-quilter/simulate.html · **Fireside deck:** [assets/Nexus_Quilter_VIM.pdf](assets/Nexus_Quilter_VIM.pdf) · **One page:** [assets/VIM_Quilter_one_page.pdf](assets/VIM_Quilter_one_page.pdf) · **Companion note:** [assets/VIM_Quilter_companion_note.pdf](assets/VIM_Quilter_companion_note.pdf)
 
 The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Product teams. Every agreement with a department ends up as a YAML data contract, and the contract compiles into checks that run on every load. The numbers on the site come from a real run of the Databricks Python in this repository, on synthetic wealth-platform data.
 
