@@ -71,3 +71,35 @@
 .spark{width:100%;height:auto;display:block}
 .spark text{font:10px var(--font-ui);fill:#56665c}
 @media (max-width:860px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}.tradeoff{grid-template-columns:1fr}.req dl{grid-template-columns:1fr}}
+/* chapter 8: ask */
+.ask-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:1rem;align-items:start}
+.sem-tabs{display:flex;gap:4px;flex-wrap:wrap;margin:.6rem 0 0}
+.sem-tabs button{border:1px solid var(--line);background:#fff;border-radius:6px 6px 0 0;padding:.35rem .7rem;font-size:.8rem;font-weight:700;color:#3c4d42}
+.sem-tabs button[aria-selected=true]{background:#0d1f16;color:#fff;border-color:#0d1f16}
+.sem-code{margin:0;background:#0d1f16;color:#d4d4d4;border-radius:0 8px 8px 8px;padding:.8rem 1rem;font:11.5px/1.55 var(--font-mono);overflow:auto;white-space:pre;max-height:460px}
+.askas{display:flex;align-items:center;gap:.5rem;font-size:.85rem;font-weight:700;margin:.5rem 0}
+.askas select{font:inherit;font-weight:400;padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px}
+.chat .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0 .6rem}
+.chat .chips button{border:1px solid var(--line);background:#f5f8f5;border-radius:999px;padding:.3rem .7rem;font-size:.78rem;color:#16241c}
+.chat .chips button:hover{border-color:var(--green)}
+.thread{background:#f5f8f5;border:1px solid var(--line);border-radius:10px;padding:.8rem;height:520px;overflow:auto;display:flex;flex-direction:column;gap:.6rem}
+.thread .me{align-self:flex-end;background:#00301a;color:#fff;border-radius:14px 14px 3px 14px;padding:.5rem .85rem;max-width:80%;font-size:.9rem;animation:logIn .3s}
+.thread .bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px 14px 14px 3px;padding:.6rem .85rem;max-width:96%;font-size:.88rem;animation:logIn .3s}
+.thread .refuse{border-left:4px solid var(--amber)}.thread .sys{background:#e7f1ea;font-size:.82rem}
+@keyframes logIn{from{opacity:0;transform:translateY(4px)}}
+.und{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.und small{font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-right:.2rem}
+.und span{font:11px var(--font-mono);background:#e7f1ea;color:var(--forest);border-radius:4px;padding:.1rem .4rem}
+.sqlx{margin:.4rem 0}.sqlx summary{cursor:pointer;font-size:.78rem;color:var(--green);font-weight:700}
+.sqlx pre{margin:.35rem 0 0;background:#0d1f16;color:#d4d4d4;border-radius:6px;padding:.55rem .7rem;font:11px/1.5 var(--font-mono);overflow:auto;white-space:pre}
+.ans p{margin:.35rem 0}.ans .cite{font-size:.74rem;color:#56665c;border-top:1px solid var(--line);padding-top:.35rem}
+.ans .deny{color:#8a2a20}
+.mini{display:grid;gap:.25rem;margin:.4rem 0}
+.mini div{display:grid;grid-template-columns:8.5rem 1fr 6rem;gap:.4rem;align-items:center;font-size:.76rem}
+.mini i{display:block;height:9px;border-radius:2px;background:var(--green2);width:var(--w);animation:grow .8s ease-out}
+.mini i.neg{background:#c0392b}.mini b{font-family:var(--font-mono);font-size:.72rem;text-align:right}
+@keyframes grow{from{width:0}}
+.ask-in{display:flex;gap:.5rem;margin-top:.6rem}
+.ask-in input{flex:1;font:inherit;padding:.65rem .8rem;border:1px solid var(--line);border-radius:6px}
+.how-steps{margin:.4rem 0 0;padding-left:1.2rem;font-size:.92rem}.how-steps li{margin:.35rem 0}
+@media (max-width:900px){.ask-grid{grid-template-columns:1fr}.thread{height:460px}.mini div{grid-template-columns:6rem 1fr 5rem}}

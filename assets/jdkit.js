@@ -15,6 +15,7 @@ export const PAGES = [
   { href: "oncall.html", label: "Keep it running", half: "Serve", n: 5, jd: "Operational excellence" },
   { href: "duty.html", label: "Protect clients", half: "Serve", n: 6, jd: "Regulatory: Consumer Duty" },
   { href: "streaming.html", label: "Keep it live", half: "Serve", n: 7, jd: "Batch and real-time processing" },
+  { href: "ask.html", label: "Let them ask", half: "Serve", n: 8, jd: "Self-service: semantic layer and AI" },
 ];
 
 export function header(current) {

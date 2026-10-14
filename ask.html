@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Let them ask · How I work · VIM</title>
+<meta name="description" content="The semantic layer becomes self-service: a chat that answers only from certified metric views, runs as the person asking, and cites its source.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
+</head>
+<body class="sim jd-page">
+<main class="shell sim-main">
+  <p class="jd-crumb">How I work</p>
+  <h1>Let them ask</h1>
+  <p class="jd-lede">The best report is the one nobody has to request. Once every number lives in a semantic layer, with one definition and an owner, people can just ask. Pick who you are, ask a question, and watch it go from words to a certified measure to SQL, run on the live lakehouse as you, with the source cited.</p>
+  <blockquote class="jd-quote">What the job description asks: <b>“Enable self-service analytics through well-designed data products and semantic layers”</b> and <b>“Explore and apply AI capabilities responsibly.”</b> At Lifepal, putting definitions into the semantic layer first cut ad-hoc requests by 60%.</blockquote>
+  <p class="engine-line" id="engine">Starting the lakehouse…</p>
+  <div class="ask-grid">
+    <section class="card sem" aria-labelledby="sem-h"><span class="step">The semantic layer</span><h2 id="sem-h">Metric views, one per department</h2>
+      <p class="muted">Each measure is defined once, with an owner. The chat can only use what's here.</p>
+      <div class="sem-tabs" id="semtabs" role="tablist"></div><pre class="sem-code" id="semcode"></pre>
+      <p class="muted" style="font-size:.82rem">Databricks metric views (Unity Catalog). Power BI, Fabric and the chat all read these same definitions.</p></section>
+    <section class="card chat" aria-labelledby="chat-h"><span class="step">Self-service</span><h2 id="chat-h">Ask NEXUS</h2>
+      <label class="askas">Asking as <select id="who"></select></label>
+      <div class="chips" id="chips"></div>
+      <div class="thread" id="thread" aria-live="polite"><div class="bot">Hello. I answer from certified metrics only, with your own permissions, and I always show where a number came from. Try a question below.</div></div>
+      <form class="ask-in" id="ask"><input id="q" autocomplete="off" placeholder="e.g. What were net flows last month by wrapper?" aria-label="Your question"><button class="btn-run" type="submit">Ask</button></form>
+    </section>
+  </div>
+  <div class="card how"><span class="step">How it works</span><h2>Words → certified measure → governed SQL → answer with a source</h2>
+    <ol class="how-steps"><li><b>Understand.</b> Map the question to a measure, dimensions and a time window that exist in a metric view. In production an LLM does this (Databricks Genie or AI/BI); here a small rule-based parser stands in for it, so the page works offline and you can see every step.</li>
+      <li><b>Compile.</b> The metric view turns <code>MEASURE(net_flows)</code> into the one SQL definition the owner signed off.</li>
+      <li><b>Run as you.</b> The query runs with the asker's grants, masks and row filters. No service account, so the bot can never see more than you can.</li>
+      <li><b>Cite.</b> Every answer names the table, its Delta version, the owner and the definition. If there's no certified measure, it says so instead of guessing.</li></ol></div>
+</main>
+<script src="assets/hl.js"></script>
+<script type="module" src="assets/ask.js"></script>
+</body>
+</html>

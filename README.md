@@ -19,7 +19,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
 | `simulate.html`, `assets/sim/` | How I work: the start of the story, “How the data gets there” (the ELT run) and chapter 4 (a week with the business). |
-| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
+| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html`, `ask.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
 | `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
 
 ## How I work: lead and serve
@@ -34,6 +34,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **On-call shift** (5 · operational excellence). Live SLO tiles, triage, the planted £250 reconciliation break investigated with three queries, an incident record with time to acknowledge and mitigate, and a volume alert tuned against a year of real daily counts.
 - **Consumer Duty** (regulatory). The analyst can't read the vulnerability flag; the pipeline's service principal publishes an aggregate with a minimum cell size, which shows vulnerable clients waiting about twice as long on transfers out.
 - **Streaming** (batch and real-time). 13,242 events in micro-batches, each a real MERGE, with a watermarked keyed aggregate. With MERGE and no watermark it matches the lakehouse exactly; the other settings show why the certified numbers stay on batch.
+- **Let them ask** (self-service and AI). The semantic layer as metric views, and a chat that maps a question to a certified measure, compiles it to SQL, runs it on the lakehouse with the asker's permissions and cites the source. It refuses undefined metrics, personal data and advice. A small rule-based parser stands in for the LLM.
 
 ## The lakehouse in your browser
 
