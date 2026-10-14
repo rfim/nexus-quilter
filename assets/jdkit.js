@@ -22,7 +22,7 @@ export function header(current) {
   el.className = "site-header";
   el.innerHTML = `<a class="brand" href="simulate.html"><span class="brand-mark" aria-hidden="true"></span><span><b>NEXUS</b> <span class="brand-for">How I work</span></span></a>
     <nav aria-label="How I work">${PAGES.map((p) => `<a href="${p.href}"${p.href === current ? ' aria-current="page" style="color:var(--mint)"' : ""} title="${esc(p.half)} · ${esc(p.jd)}">${p.n} ${esc(p.label)}</a>`).join("")}
-    <a href="lakehouse.html" class="nav-code"><span class="live" aria-hidden="true"></span>Lakehouse</a></nav>`;
+    <a href="lakehouse.html" class="nav-code"><span class="live" aria-hidden="true"></span>Live lakehouse</a></nav>`;
   document.body.prepend(el);
   const i = PAGES.findIndex((p) => p.href === current);
   if (i >= 0) {
@@ -32,7 +32,7 @@ export function header(current) {
     const nav = document.createElement("nav");
     nav.className = "story-nav"; nav.setAttribute("aria-label", "Chapters");
     nav.innerHTML = `${prev ? `<a href="${prev.href}"><small>← Chapter ${prev.n}</small>${esc(prev.label)}</a>` : `<a href="simulate.html"><small>← Start</small>How I work</a>`}
-      ${next ? `<a class="next" href="${next.href}"><small>Chapter ${next.n} →</small>${esc(next.label)}</a>` : `<a class="next" href="lakehouse.html"><small>The foundation →</small>Open the lakehouse</a>`}`;
+      ${next ? `<a class="next" href="${next.href}"><small>Chapter ${next.n} →</small>${esc(next.label)}</a>` : `<a class="next" href="lakehouse.html"><small>The foundation →</small><span class="live" aria-hidden="true"></span>Open the live lakehouse</a>`}`;
     document.querySelector("main").append(nav);
   }
 }

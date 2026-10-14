@@ -22,7 +22,7 @@
     <a href="#platform">Platform</a>
     <a href="#team">Team</a>
     <a href="#how-i-work"><span class="live" aria-hidden="true"></span>How I work</a>
-    <a href="lakehouse.html">Lakehouse</a>
+    <a href="lakehouse.html"><span class="live" aria-hidden="true"></span>Live lakehouse</a>
     <a href="https://github.com/rfim/nexus-quilter" class="nav-code">See the code ↗</a>
   </nav>
 </header>
@@ -43,13 +43,19 @@
     </g>
   </svg>
   <div class="shell hero-inner">
+    <div class="hero-built" aria-label="Built at Lifepal, presented to Quilter">
+      <div><small>Built at</small><span class="logo-tile"><img src="assets/lifepal.png" alt="Lifepal" width="140" height="50"></span></div>
+      <i aria-hidden="true">→</i>
+      <div><small>Presented to</small><b>Quilter</b></div>
+      <p>Four years running NEXUS in production at Lifepal, a regulated insurance marketplace. The same methods, applied to Quilter.</p>
+    </div>
     <p class="presented">Presented to <b>Quilter</b> · Chief Data Office · Lead Data Engineer</p>
     <h1 id="hero-title">NEXUS</h1>
     <p class="hero-sub">Governed data products for every department, on Databricks within Azure</p>
-    <p class="hero-lede">I'm <b>VIM</b>, R. Firman Insan Muhammad, a Lead Data Engineer in London. For four years I've led the data platform at Lifepal, a regulated insurance marketplace. This site shows how I would lead the team and serve Quilter's business. Don't just read about it: every chapter below runs on a real lakehouse, in your browser.</p>
+    <p class="hero-lede">I'm <b>VIM</b>, R. Firman Insan Muhammad, a Lead Data Engineer in London. For four years I've led the data platform at Lifepal, a regulated insurance marketplace. This site shows how I would lead the team and serve Quilter's business. Don't just read about it: every chapter below runs on a live lakehouse, in your browser.</p>
     <div class="hero-cta">
       <a class="button button-primary" href="#how-i-work"><span class="live" aria-hidden="true"></span>See how I work <span>→</span></a>
-      <a class="button button-primary" href="lakehouse.html"><span class="live" aria-hidden="true"></span>Open the lakehouse <span>→</span></a>
+      <a class="button button-primary" href="lakehouse.html"><span class="live" aria-hidden="true"></span>Open the live lakehouse <span>→</span></a>
       <a class="button button-secondary" href="assets/Nexus_Quilter_VIM.pdf">Fireside deck (PDF) <span>↓</span></a>
       <a class="button button-secondary" href="assets/VIM_Quilter_one_page.pdf">One-page summary (PDF) <span>↓</span></a>
       <a class="button button-secondary" href="assets/VIM_Quilter_companion_note.pdf">Lifepal → Quilter (PDF) <span>↓</span></a>
@@ -85,8 +91,8 @@
         </div>
       </div>
       <div class="foundation">
-        <div><b><span class="live" aria-hidden="true"></span>The foundation: the lakehouse</b><p>Every chapter runs on the same Delta tables my Databricks Python built, opened in your browser with the same grants, masks and row filters. That's why the numbers agree from page to page.</p></div>
-        <div class="btns"><a href="lakehouse.html">Open the lakehouse</a><a class="ghost" href="simulate.html">How the data gets there</a></div>
+        <div><b><span class="live" aria-hidden="true"></span>The foundation: the live lakehouse</b><p>Every chapter runs on the same Delta tables my Databricks Python built, opened in your browser with the same grants, masks and row filters. That's why the numbers agree from page to page.</p></div>
+        <div class="btns"><a href="lakehouse.html"><span class="live" aria-hidden="true"></span>Open the live lakehouse</a><a class="ghost" href="simulate.html">How the data gets there</a></div>
       </div>
   </div>
 </section>
@@ -155,7 +161,7 @@
     </div>
     <ol class="stages" id="stages"></ol>
     <div class="stage-detail" id="stage-detail"></div>
-    <a class="lakehouse-cta" href="lakehouse.html"><b>Open the lakehouse</b><span>The real Delta tables from this run, in your browser. Query them in SQL, time travel between versions, and switch personas to see grants, masks and row filters at work.</span><i>→</i></a>
+    <a class="lakehouse-cta" href="lakehouse.html"><b><span class="live" aria-hidden="true"></span>Open the live lakehouse</b><span>The real Delta tables from this run, in your browser. Query them in SQL, time travel between versions, and switch personas to see grants, masks and row filters at work.</span><i>→</i></a>
     <div class="plane">
       <span>Unity Catalog governance plane</span>
       <b>Classify</b><b>Enforce</b><b>Trace</b><b>Measure</b>

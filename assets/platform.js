@@ -88,7 +88,7 @@ export async function renderArchitecture(view, lake, site) {
 }
 
 // ---- 2. Orchestration ---------------------------------------------------------------------
-export function renderOrchestration(view, site) {
+export function renderOrchestration(view, site, lake) {
   const tasks = site.run.tasks;
   const total = Math.max(...tasks.map((t) => t.start_s + t.duration_s)) - tasks[0].start_s;
   const t0 = tasks[0].start_s;
@@ -114,6 +114,8 @@ targets:
     <div class="orch-btns"><button class="btn" id="replay">▶ Replay the run</button><button class="btn ghost" id="fail">Replay with a failure</button></div></div>
     <div class="orch-clock"><span id="clk">05:30:00</span><span id="status" class="pill">scheduled · Mon–Fri 05:30 Europe/London</span></div>
     <div class="dagflow" id="dag">${tasks.map((t, i) => `<div class="tnode" data-i="${i}"><small>${String(i + 1).padStart(2, "0")}</small><b>${esc(t.label)}</b><i><em></em></i><span>${t.duration_s.toFixed(1)}s</span></div>`).join('<div class="tarrow" aria-hidden="true"></div>')}</div>
+    <div class="cell runlog"><div class="cell-bar"><span class="lang">Run log</span><span>what Spark recorded, and what the team did about it · click an entry</span></div>
+      <div class="rl-grid"><ol class="rl-list" id="rl" aria-live="polite"></ol><div class="rl-detail" id="rld"><p class="muted">Measuring the tables…</p></div></div></div>
     <div class="orch-grid">
       <div class="cell"><div class="cell-bar"><span class="lang">databricks.yml</span><span>Asset Bundle</span></div><pre class="orch-code">${NexusHL.hl(BUNDLE, "yaml")}</pre></div>
       <div class="cell"><div class="cell-bar"><span class="lang">How I orchestrate</span></div><ul class="orch-rules">
@@ -124,13 +126,14 @@ targets:
         <li><b>Alerts go to owners.</b> Failures page the platform; contract breaches notify the data owner named in the YAML.</li>
         <li><b>Right trigger for the source.</b> Schedules for batch, file-arrival triggers for drops, continuous streams only where someone needs it live.</li></ul></div></div>`;
   const nodes = [...view.querySelectorAll(".tnode")];
+  const log = runLog(view, site, lake);
   const reset = () => nodes.forEach((n) => { n.className = "tnode"; $("em", n).style.width = "0"; });
   const clock = (s) => { const d = new Date(Date.UTC(2026, 9, 1, 5, 30, 0) + s * 1000); $("#clk", view).textContent = d.toISOString().slice(11, 19); };
   let running = false;
   async function replay(failAt = -1, from = 0) {
     if (running) return; running = true;
     view.querySelectorAll(".orch-btns button").forEach((b) => b.disabled = true);
-    if (from === 0) reset();
+    if (from === 0) { reset(); log.clear(); }
     $("#status", view).className = "pill amber"; $("#status", view).textContent = from ? "repair run · from the failed task" : "running";
     const speed = still ? 0.02 : 8 / total;   // whole run in about 8 seconds
     for (let i = from; i < tasks.length; i++) {
@@ -142,6 +145,7 @@ targets:
         $("em", n).style.width = `${(i === failAt ? Math.min(k, 0.4) : k) * 100}%`; clock(t.start_s - t0 + t.duration_s * k);
         if (k < 1) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
       if (i === failAt) {
+        log.add("drift");
         n.className = "tnode failed";
         nodes.slice(i + 1).forEach((x) => x.className = "tnode skipped");
         $("#status", view).className = "pill red"; $("#status", view).textContent = "failed: schema drift on platform_transactions · nothing written";
@@ -150,6 +154,7 @@ targets:
         return;
       }
       n.className = "tnode done";
+      log.task(t.key);
     }
     $("#status", view).className = "pill"; $("#status", view).textContent = from ? "repaired · only the failed task and its downstream re-ran" : `succeeded · ${fmt(total, 0)}s on a 2-core laptop`;
     $("#fail", view).textContent = "Replay with a failure"; delete $("#fail", view).dataset.repair;
@@ -260,4 +265,146 @@ export function renderCost(view, site) {
     $("#enote", view).textContent = `${fmt(runs)} runs × ${mins} min × ${w} workers × $${rate}/worker-hour. ${usd > budget ? "Over the $500 budget for this job: is the cadence what the decision needs?" : "Within the $500 budget for this job."}`;
   };
   view.querySelectorAll(".est select, .est input").forEach((e) => e.oninput = calc); calc();
+}
+
+// ---- run log: Spark signals, root cause under the hood, the Databricks fix ------------------
+async function measure(lake) {
+  const m = {};
+  const [fund] = await lake.rows("SELECT count(*) AS n FROM nexus.silver.dim_fund_share_class");
+  const ft = lake.tables.get("nexus.silver.dim_fund_share_class");
+  m.fundRows = fund.n; m.fundBytes = lake.snapshot(ft).files.reduce((a, f) => a + f.size, 0);
+  m.entity = await lake.rows("SELECT legal_entity AS k, count(*) AS n FROM nexus.gold.fct_platform_transaction GROUP BY ALL ORDER BY n DESC");
+  const [acc] = await lake.rows(`SELECT max(n) AS mx, median(n) AS med, count(*) AS accounts FROM (
+    SELECT account_id, count(*) AS n FROM nexus.bronze.platform_transaction GROUP BY ALL)`);
+  m.acc = acc;
+  m.files = [...lake.tables.values()].map((t) => { const sn = lake.snapshot(t);
+    const removed = t.commits.reduce((a, c) => a + c.actions.filter((x) => x.remove).length, 0);
+    return { name: t.name, files: sn.files.length, bytes: sn.files.reduce((a, f) => a + f.size, 0), removed, versions: t.current + 1 }; });
+  m.removed = m.files.reduce((a, f) => a + f.removed, 0);
+  m.tablesWithRemoved = m.files.filter((f) => f.removed).length;
+  return m;
+}
+
+function bars(items, max, cls = "") {
+  return `<div class="rl-bars ${cls}">${items.map(([label, v, note, hot]) => `<div><span>${esc(label)}</span><i style="--w:${Math.max(1.5, v / max * 100)}%" class="${hot ? "hot" : ""}"></i><b>${esc(note ?? fmt(v))}</b></div>`).join("")}</div>`;
+}
+
+function runLog(view, site, lake) {
+  const r = site.run, fin = site.contracts.find((c) => c.department === "Finance");
+  let m = null;
+  const ENTRIES = {
+    replay: { task: "ingest", level: "INFO", src: "measured here", title: `MERGE collapsed ${r.feeds.replayed_records} replayed records inside the batch`,
+      spark: () => `${fmt(r.feeds.platform_transactions)} records arrived; bronze holds ${fmt(r.bronze.platform_transactions)} unique transactions, and the full replay changed 0 rows.`,
+      hood: "A MERGE matches source rows to target rows on the key. If the same key appears twice in one batch, Delta refuses to guess which wins and fails the MERGE, so duplicates are removed inside the batch first with a window over the key, ordered by the CDC sequence.",
+      fix: ["python", `w = Window.partitionBy("transaction_id").orderBy(F.col("cdc_lsn").desc())
+latest = batch.withColumn("_rn", F.row_number().over(w)).filter("_rn = 1")
+target.alias("t").merge(latest.alias("s"), "t.transaction_id = s.transaction_id") \\
+    .whenMatchedUpdateAll(condition="s.cdc_lsn > t.cdc_lsn").whenNotMatchedInsertAll().execute()`],
+      ba: () => bars([["records in", r.feeds.platform_transactions + r.feeds.late_corrections], ["rows in bronze", r.bronze.platform_transactions], ["rows changed by replay", 0, "0"]], r.feeds.platform_transactions + r.feeds.late_corrections),
+      team: ["Detected by the replay test in CI (run twice, compare counts).", "No action needed in production: this is the design working.", "Guard: the test runs on every pull request that touches bronze."] },
+    small: { task: "ingest", level: "WARN", src: "production scale", title: "Small files: 1,240 files averaging 190 KB in one bronze table",
+      spark: () => `Streaming micro-batches and frequent MERGEs each write new files. At Lifepal, one bronze table reached 1,240 files of about 190 KB, and every query opened all of them. Here, measured live: ${m.files.filter((f) => f.files === 1).length} of ${m.files.length} tables are one file each, because they're compacted.`,
+      hood: "Spark plans one task per file split, and every file means a listing call, a footer read and an open on cloud storage. Thousands of tiny files spend more time on that overhead than on reading data, and Delta's statistics for skipping files get less useful.",
+      fix: ["sql", `ALTER TABLE nexus.bronze.platform_transaction SET TBLPROPERTIES (
+  'delta.autoOptimize.optimizeWrite' = 'true',   -- fewer, larger files at write time
+  'delta.autoOptimize.autoCompact'   = 'true');  -- compact small files after writes
+OPTIMIZE nexus.bronze.platform_transaction;       -- one-off compaction
+-- in Unity Catalog: let predictive optimization schedule OPTIMIZE and VACUUM
+ALTER SCHEMA nexus.bronze ENABLE PREDICTIVE OPTIMIZATION;`],
+      ba: () => bars([["files before", 1240, "1,240 files", true], ["files after OPTIMIZE", 3, "3 files"], ["scan before", 41, "41 s", true], ["scan after", 6, "6 s"]], 1240) + `<p class="muted">Illustrative, from Lifepal at production scale. Live here: ${m.files.length} tables, ${m.files.reduce((a, f) => a + f.files, 0)} data files in total.</p>`,
+      team: ["Detected by a weekly job over the table metadata: alert when average file size falls under 32 MB.", "Triaged by the table owner: is it streaming, frequent MERGE or over-partitioning?", "Fixed with optimizeWrite and autoCompact, then OPTIMIZE once.", "Guard: predictive optimization on the schema, so nobody schedules it by hand."] },
+    broadcast: { task: "silver", level: "INFO", src: "measured here", title: () => `BroadcastHashJoin: dim_fund_share_class (${m.fundRows} rows, ${(m.fundBytes / 1024).toFixed(1)} KB) sent to every executor`,
+      spark: () => `The fund dimension has ${m.fundRows} rows (${(m.fundBytes / 1024).toFixed(1)} KB), well under the 10 MB auto-broadcast threshold, so Spark copies it to every executor instead of shuffling ${fmt(r.gold_fact.rows)} facts.`,
+      hood: "A sort-merge join shuffles both sides by the join key across the network and sorts them. When one side is small, broadcasting it lets every task join locally: no shuffle of the big side at all. AQE can also switch to a broadcast at runtime when it sees a side is small.",
+      fix: ["python", `from pyspark.sql.functions import broadcast
+fact = txn.join(broadcast(dim_fund), on="isin", how="left")   # explicit, survives stats drift
+# spark.sql.autoBroadcastJoinThreshold = 10MB by default; AQE re-plans at runtime`],
+      ba: () => bars([["shuffled rows, sort-merge", r.gold_fact.rows + m.fundRows, null, true], ["shuffled rows, broadcast", 0, "0"]], r.gold_fact.rows + m.fundRows),
+      team: ["Checked in the query plan during review (EXPLAIN shows BroadcastHashJoin).", "Explicit broadcast hint for dimensions that will always be small.", "Guard: a dimension that grows past the threshold shows up as a new Exchange in the plan diff."] },
+    skew: { task: "gold", level: "WARN", src: "measured here", title: () => `Skew: ${esc(m.entity[0].k)} holds ${Math.round(m.entity[0].n / (m.entity.reduce((a, e) => a + e.n, 0)) * 100)}% of the fact; busiest account ${m.acc.mx} rows vs median ${m.acc.med}`,
+      spark: () => `Measured on the fact table: ${m.entity.map((e) => `${e.k} ${fmt(e.n)}`).join(", ")} rows. Partitioning by legal_entity would give one task ${(m.entity[0].n / m.entity[1].n).toFixed(1)}× the work of the other. Per account the busiest has ${m.acc.mx} transactions against a median of ${m.acc.med}.`,
+      hood: "A shuffle sends every row with the same key to the same task. If one key is hot, that task runs long while the others finish and wait: the stage is as slow as its slowest task, and the Spark UI shows one task far above the median duration.",
+      fix: ["sql", `-- AQE splits skewed shuffle partitions at runtime (on by default in Databricks)
+SET spark.sql.adaptive.enabled = true;
+SET spark.sql.adaptive.skewJoin.enabled = true;
+-- don't partition by a skewed, low-cardinality column; cluster instead
+ALTER TABLE nexus.gold.fct_platform_transaction CLUSTER BY (trade_date, account_sk);
+-- for a hot key in an aggregation, salt it: group by (key, salt), then by key`],
+      ba: () => { const tot = m.entity.reduce((a, e) => a + e.n, 0), half = tot / 2;
+        return bars(m.entity.map((e, i) => [`task by ${e.k}`, e.n, `${fmt(e.n)} rows`, i === 0]), m.entity[0].n) + `<p class="muted">After AQE splits the hot partition, each task gets about ${fmt(Math.ceil(half / Math.ceil(m.entity[0].n / half)))}–${fmt(Math.ceil(half))} rows instead of ${fmt(m.entity[0].n)}.</p>`; },
+      team: ["Detected from the stage's task-duration distribution (max vs median) in the Spark UI and system tables.", "Triaged: is it a join, an aggregation or the table layout?", "Fixed with AQE skew-join settings and liquid clustering instead of partitionBy(legal_entity).", "Guard: a weekly query on system.lakeflow job runs flags stages whose slowest task exceeds 5× the median."] },
+    spill: { task: "restate", level: "WARN", src: "production scale", title: "Spill: 2.4 GB spilled to disk in the restatement sort",
+      spark: () => "At Lifepal's volume, the restatement stage sorted more data per task than executor memory held, and Spark wrote 2.4 GB of spill to local disk. The stage took 9 minutes.",
+      hood: "When a sort or aggregation doesn't fit in execution memory, Spark writes sorted runs to local disk and merges them later. It doesn't fail, it just gets slow. The usual causes are too few shuffle partitions for the data, skew, or wide rows.",
+      fix: ["sql", `SET spark.sql.shuffle.partitions = auto;                 -- let AQE size partitions
+SET spark.sql.adaptive.coalescePartitions.enabled = true;
+SET spark.sql.adaptive.advisoryPartitionSizeInBytes = 128MB;
+-- and only re-read what changed: restate the affected trade_dates, not the year`],
+      ba: () => bars([["spill before", 2.4, "2.4 GB", true], ["spill after", 0.01, "0"], ["stage before", 9, "9 min", true], ["stage after", 3, "3 min"]], 9) + '<p class="muted">Illustrative, from Lifepal at production scale.</p>',
+      team: ["Detected from spill metrics on the stage (Spark UI, system tables).", "Triaged: partition count, skew or memory?", "Fixed with AQE auto partitions and a narrower restatement window; Photon on the job cluster.", "Guard: health rule on run duration (45 min) catches regressions before the SLO."] },
+    late: { task: "late", level: "INFO", src: "measured here", title: `Late batch: ${r.feeds.late_corrections} corrections applied by MERGE, gold restated`,
+      spark: () => `${r.feeds.late_corrections} corrections arrived after the first publish. MERGE updated the existing rows (newest CDC sequence wins), and silver and gold re-ran for the affected dates.`,
+      hood: "Delta writes a new table version for the MERGE; the old version stays readable, which is how Finance can see what was issued and what changed.",
+      fix: ["sql", `-- what was issued vs now, straight from the Delta history
+SELECT n.trade_date, n.wrapper_code, i.net_flows_gbp AS issued, n.net_flows_gbp AS now
+FROM nexus.gold.finance_net_flows_daily n
+JOIN nexus.gold.finance_net_flows_daily VERSION AS OF 0 i USING (trade_date, wrapper_code, legal_entity)
+WHERE n.net_flows_gbp <> i.net_flows_gbp`],
+      ba: () => bars([["corrections", r.feeds.late_corrections], ["new rows", 0, "0"]], r.feeds.late_corrections),
+      team: ["Expected, not an incident: the design restates by MERGE.", "Finance is told which days changed, with the time-travel diff attached.", "Guard: the lookback (72 h) is the p99.5 of observed lateness, re-measured quarterly."] },
+    recon: { task: "check_issued", level: "ERROR", src: "measured here", title: `Contract check failed: ${fin.product} reconcile to finance_ledger (1 row, £250)`,
+      spark: () => "One day and wrapper, 14 Aug ISA, differs from the ledger by £250. Quarantine was empty that day and bronze equals gold, so the pipeline is clean.",
+      hood: "Not a Spark problem: the check compares two independent systems. It's in the log because a failing contract is an operational event with an owner.",
+      fix: ["sql", `SELECT trade_date, wrapper_code, platform_gbp, ledger_gbp, ledger_gbp - platform_gbp AS diff
+FROM reconciliation WHERE abs(diff) > 0.01   -- compiled from the contract's tolerance_gbp`],
+      ba: () => bars([["platform", 1522.70, "£1,522.70"], ["ledger", 1772.70, "£1,772.70", true]], 1772.70),
+      team: ["Detected by the contract check; the Finance owner is notified from the YAML.", "Triaged with three queries (Chapter 5, Keep it running).", "Fixed at the source; the check stays red until the posting is resent.", "Guard: a source-to-ledger completeness check at bronze."] },
+    vacuum: { task: "check", level: "INFO", src: "measured here", title: () => `VACUUM candidates: ${m.removed} superseded files across ${m.tablesWithRemoved} tables`,
+      spark: () => `Every rewrite leaves the old files in place for time travel. Across the lakehouse, ${m.removed} files have been logically removed but are still on storage.`,
+      hood: "Delta never deletes data in place: a remove action in the log hides a file from new versions, but the file stays until VACUUM, so older versions still work. Retention is the trade-off between storage cost and how far back you can travel.",
+      fix: ["sql", `ALTER TABLE nexus.gold.finance_net_flows_daily SET TBLPROPERTIES (
+  'delta.deletedFileRetentionDuration' = 'interval 90 days',   -- audit window
+  'delta.logRetentionDuration'         = 'interval 90 days');
+VACUUM nexus.gold.finance_net_flows_daily;                      -- or predictive optimization`],
+      ba: () => bars(m.files.filter((f) => f.removed).slice(0, 6).map((f) => [f.name.replace("nexus.", ""), f.removed, `${f.removed} file(s)`]), Math.max(...m.files.map((f) => f.removed), 1)),
+      team: ["Retention agreed with the DPO and Finance (90 days for certified products).", "VACUUM run by predictive optimization.", "Guard: a restatement older than the window is reproduced from vault satellites instead."] },
+    drift: { task: "late", level: "ERROR", src: "scenario", title: "Schema drift: amount_gbp missing, amount unexpected · late batch rejected before MERGE",
+      spark: () => "The schema check compared the batch with the source contract and stopped the task before anything was written. Published numbers stayed on the last good version.",
+      hood: "Without the check, Delta would either fail the MERGE on a missing column or, with schema evolution switched on, add a new column and leave amount_gbp null, which silently zeroes net flows.",
+      fix: ["yaml", `# contracts/sources/sources.yml: the agreed interface
+columns:
+  - {name: amount_gbp, type: "decimal(18,2)", required: true}
+schema_evolution: reject      # a rename is a contract change, not a hotfix`],
+      ba: () => bars([["rows written", 0, "0"], ["published numbers changed", 0, "0"]], 1),
+      team: ["Detected by the schema check; the platform owner is paged.", "Triaged: a rename upstream, agreed as a contract change the same day.", "Fixed: contract PR merged, then a repair run from this task.", "Guard: the source team's CI validates against our contract before they deploy."] },
+  };
+  const ORDER = ["replay", "small", "broadcast", "skew", "spill", "late", "recon", "vacuum"];
+  const val = (x) => typeof x === "function" ? x() : x;
+  const shown = [];
+  const t0 = site.run.tasks[0].start_s;
+  const stamp = (key) => { const t = site.run.tasks.find((x) => x.key === ENTRIES[key].task) || site.run.tasks[0];
+    const d = new Date(Date.UTC(2026, 9, 1, 5, 30, 0) + (t.start_s - t0 + t.duration_s * 0.8) * 1000); return d.toISOString().slice(11, 19); };
+  const draw = () => {
+    if (!m) return;
+    $("#rl", view).innerHTML = [...shown].sort((a, b) => stamp(a).localeCompare(stamp(b))).map((k) => { const e = ENTRIES[k];
+      return `<li><button data-k="${k}" class="lvl-${e.level.toLowerCase()}"><span class="ts">${stamp(k)}</span><span class="lv">${e.level}</span><span class="tk">${esc(e.task)}</span><span class="msg">${esc(val(e.title))}</span><span class="src">${e.src}</span></button></li>`; }).join("");
+    view.querySelectorAll("#rl button").forEach((b) => b.onclick = () => open(b.dataset.k));
+  };
+  const open = (k) => {
+    const e = ENTRIES[k];
+    view.querySelectorAll("#rl button").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
+    $("#rld", view).innerHTML = `<div class="rl-h"><span class="pill ${e.level === "ERROR" ? "red" : e.level === "WARN" ? "amber" : ""}">${e.level}</span> <b>${esc(val(e.title))}</b> <span class="src-tag">${e.src}</span></div>
+      <h4>What Spark recorded</h4><p>${esc(e.spark())}</p>
+      <h4>Under the hood</h4><p>${esc(e.hood)}</p>
+      <h4>The fix, Databricks best practice</h4><pre class="orch-code">${NexusHL.hl(e.fix[1], e.fix[0])}</pre>
+      <h4>Before → after</h4>${e.ba()}
+      <h4>How the team handles it</h4><ol class="rl-steps">${e.team.map((t) => `<li>${esc(t)}</li>`).join("")}</ol>`;
+  };
+  measure(lake).then((res) => { m = res; shown.push(...ORDER); draw(); open("skew"); })
+    .catch((err) => { $("#rld", view).innerHTML = `<div class="err">${esc(err.message)}</div>`; });
+  return {
+    clear() { shown.length = 0; draw(); },
+    task(key) { for (const k of ORDER) if (ENTRIES[k].task === key && !shown.includes(k)) shown.push(k); draw(); },
+    add(k) { if (!shown.includes(k)) shown.push(k); draw(); if (m) open(k); },
+  };
 }

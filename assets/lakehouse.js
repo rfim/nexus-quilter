@@ -201,7 +201,7 @@ ready.then(async () => {
   }
   const TOUR = [
     { key: "arch", title: "Architecture", go: () => renderArchitecture($("#view"), lake, site) },
-    { key: "orch", title: "Orchestration", go: () => renderOrchestration($("#view"), site) },
+    { key: "orch", title: "Orchestration", go: () => renderOrchestration($("#view"), site, lake) },
     { key: "lineage", title: "Lineage & governance", go: () => renderLineage($("#view"), lake) },
     { key: "cost", title: "Cost", go: () => renderCost($("#view"), site) },
   ];

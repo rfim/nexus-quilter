@@ -275,3 +275,14 @@ button.chapter{width:100%;text-align:left;font:inherit;cursor:pointer}
 .hl-light .hl-ctl{color:#af00db}.hl-light .hl-fn{color:#795e26}.hl-light .hl-type{color:#267f99}.hl-light .hl-var{color:#001080}
 .hl-light .hl-key{color:#0451a5}.hl-light .hl-const{color:#0000ff}.hl-light .hl-op{color:#3b3b3b}
 .hl-light .hl-add{background:#e6ffec;box-shadow:inset 3px 0 0 #2da44e}.hl-light .hl-del{background:#ffebe9;box-shadow:inset 3px 0 0 #cf222e}
+
+/* Built at Lifepal → presented to Quilter */
+.hero-built{position:absolute;right:0;top:50%;transform:translateY(-58%);width:330px;display:grid;grid-template-columns:auto auto 1fr;align-items:end;gap:.9rem;
+  background:rgba(0,29,16,.55);border:1px solid rgba(155,227,181,.25);border-radius:14px;padding:1.2rem 1.3rem;backdrop-filter:blur(4px)}
+.hero-built small{display:block;font-size:.62rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--mint);margin-bottom:.45rem}
+.hero-built .logo-tile{display:inline-flex;background:#fff;border-radius:8px;padding:.35rem .6rem}
+.hero-built img{display:block;width:96px;height:auto}
+.hero-built i{font-style:normal;color:var(--mint);font-size:1.3rem;padding-bottom:.35rem}
+.hero-built b{display:block;font-size:1.75rem;line-height:1.2;color:#fff;letter-spacing:-.02em}
+.hero-built p{grid-column:1/-1;margin:.2rem 0 0;font-size:.84rem;color:#cfe3d6;line-height:1.5}
+@media (max-width:1180px){.hero-built{position:static;transform:none;width:auto;max-width:420px;margin:0 0 1.6rem}}
