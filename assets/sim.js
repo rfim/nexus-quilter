@@ -533,7 +533,7 @@ boot().then((v) => {
 // 2. STAKEHOLDER WEEK
 // =============================================================================================
 const DEPTS = ["Finance", "Marketing", "HR", "Executive", "Product"];
-const START = { Finance: 60, Marketing: 60, HR: 60, Executive: 60, Product: 60, focus: 70, risk: 30 };
+const START = { Finance: 60, Marketing: 60, HR: 60, Executive: 60, Product: 60, Partners: 60, focus: 70, risk: 30 };
 
 // Each option: d = changes {Finance:+10, focus:-5, risk:+10 …}. best marks the answer I'd give.
 const WEEK = [
@@ -601,6 +601,16 @@ const WEEK = [
       { t: "No, not this quarter.", d: { Product: -15 },
         f: "Small, low-risk and wanted. Refusing it costs trust for nothing." },
     ] },
+  { when: "Wednesday 15:00", from: "Architecture", title: "Everything into a Fabric Warehouse?",
+    msg: "The architecture board proposes that every new data product lands in a Fabric Warehouse from next quarter. They'd like your view on Monday.",
+    options: [
+      { t: "Agree: it's the board's call.", d: { Partners: 5, risk: 15 },
+        f: "A second copy of every product means a second set of masks to keep in step, and two places a number can drift." },
+      { t: "Send a one-page options paper: read gold in place through OneLake shortcuts and Direct Lake, with a spike that tests masks and row filters end to end; bring it to Monday's board.", best: true, d: { Partners: 15, risk: -5, focus: -5 },
+        f: "Architecture owns the target state, so I bring evidence to their forum, not an argument in a corridor. The design review simulation is the full version of this decision." },
+      { t: "Push back hard: Databricks is enough.", d: { Partners: -15 },
+        f: "Fabric is the organisation's direction. Fighting it costs the relationship and the influence I need for the parts that matter." },
+    ] },
   { when: "Thursday 09:00", from: "Executive", title: "Two engineers off sick",
     msg: "Two of five engineers are off this week. You have the board pack fix, the contract change and three smaller requests.",
     options: [
@@ -621,6 +631,16 @@ const WEEK = [
       { t: "No AI near client data.", d: { Executive: -10 },
         f: "Safe but closes a useful door. There's a governed way to start." },
     ] },
+  { when: "Thursday 11:30", from: "Platform", title: "Runtime upgrade next week",
+    msg: "The platform team is moving every workspace to the new Databricks LTS runtime next Tuesday. Two of our jobs pin the old one.",
+    options: [
+      { t: "Ask them to exempt our jobs for a quarter.", d: { Partners: -10, risk: 10 },
+        f: "Every exemption makes the platform harder to run, and an unsupported runtime is a security risk." },
+      { t: "Run both jobs on the new runtime in test today, with the contract checks and the metric diff as the regression test; share the result and agree a fallback.", best: true, d: { Partners: 15, risk: -5, focus: -5 },
+        f: "The CI gate already compares every certified number, so an upgrade is a test run, not a leap of faith. The platform team gets an answer in a day." },
+      { t: "Let it happen and see what breaks.", d: { risk: 20, Finance: -5 },
+        f: "Finding out in production on the morning of a board pack is the expensive way." },
+    ] },
   { when: "Friday 10:00", from: "Finance", title: "What did we say on 1 October?",
     msg: "An auditor wants the net flows figure exactly as we issued it, before the late corrections.",
     options: [
@@ -630,6 +650,16 @@ const WEEK = [
         f: "Delta keeps both versions. Try it in the lakehouse: notebook 03 runs exactly this." },
       { t: "Explain we can't reproduce it.", d: { Finance: -20, risk: 10 },
         f: "In a regulated firm, 'we can't say what we published' is a finding." },
+    ] },
+  { when: "Friday 12:00", from: "Governance", title: "Owners and classification before the audit",
+    msg: "Data governance needs a named owner and a classification for every gold table before the internal audit in three weeks.",
+    options: [
+      { t: "Fill in the spreadsheet by hand this afternoon.", d: { Partners: 5, focus: -10 },
+        f: "It's out of date the day after, and the audit will ask how we know it's still true." },
+      { t: "Show them the contracts: owner, classification and PII tags already live in the YAML and are applied as Unity Catalog tags on deploy. Export the register from the catalog, and add a CI check that blocks a gold table without an owner.", best: true, d: { Partners: 15, risk: -10 },
+        f: "Governance as code: the register is generated from what's deployed, so it can't drift. Governance gets a control, as well as a list." },
+      { t: "Tell them it's on the roadmap.", d: { Partners: -15, risk: 10 },
+        f: "An audit in three weeks isn't a roadmap item." },
     ] },
   { when: "Friday 15:00", from: "Marketing", title: "A monthly 40-page report",
     msg: "Could we get this 40-page report every month from now on?",
@@ -647,7 +677,7 @@ let game;
 function newGame() { game = { i: 0, score: { ...START }, picks: [] }; renderMeters(); renderScenario(); }
 function clamp(v) { return Math.max(0, Math.min(100, v)); }
 function renderMeters(delta = {}) {
-  const items = [...DEPTS.map((d) => [d, `${d} trust`]), ["focus", "Team focus"], ["risk", "Platform risk"]];
+  const items = [...DEPTS.map((d) => [d, `${d} trust`]), ["Partners", "Partner teams"], ["focus", "Team focus"], ["risk", "Platform risk"]];
   $("#meters").innerHTML = items.map(([k, label]) => {
     const v = game.score[k], dv = delta[k];
     const good = k === "risk" ? dv < 0 : dv > 0;
@@ -686,6 +716,7 @@ function renderSummary() {
     <div class="summary-grid">
       <div class="out-card"><h3>Where you ended</h3><table>
         <tr><td>Average department trust</td><td>${trust} (from 60)</td></tr>
+        <tr><td>Partner teams (architecture, platform, governance)</td><td>${game.score.Partners} (from 60)</td></tr>
         <tr><td>Team focus</td><td>${game.score.focus} (from 70)</td></tr>
         <tr><td>Platform risk</td><td>${game.score.risk} (from 30, lower is better)</td></tr></table></div>
       <div class="out-card"><h3>The rules behind my picks</h3><ol class="timeline">

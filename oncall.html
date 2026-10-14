@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On-call shift · NEXUS Simulations</title>
+<meta name="description" content="Operational Excellence: an on-call shift on the lakehouse. Triage alerts, investigate a real reconciliation break with SQL, run the incident, and tune a noisy alert.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
+</head>
+<body class="sim jd-page">
+<main class="shell sim-main">
+  <p class="jd-crumb">JD 5 · Operational Excellence</p>
+  <h1>On-call shift</h1>
+  <p class="jd-lede">It's Monday, 07:02, and you're on call for the NEXUS platform. Three alerts are waiting. Triage them, investigate the serious one on the lakehouse, run the incident, and then fix the alert that keeps waking people up for nothing.</p>
+  <blockquote class="jd-quote">From the job description: <b>“Ensure the reliability, performance, and operational resilience of data pipelines and platforms”</b>, <b>“Lead incident management, root cause analysis, and continuous improvement activities”</b> and <b>“Establish observability, monitoring, and alerting standards.”</b></blockquote>
+  <p class="engine-line" id="engine">Starting the lakehouse…</p>
+  <div class="kv" id="slo"></div>
+  <div class="progress" id="progress"></div>
+  <div id="flow"></div>
+</main>
+<script type="module" src="assets/oncall.js"></script>
+</body>
+</html>

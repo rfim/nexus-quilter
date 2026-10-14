@@ -60,7 +60,7 @@
 .msg small{display:block;color:#7c8b81;font-size:.74rem;margin-bottom:.2rem}
 .timeline{margin:.2rem 0 0;padding-left:1.1rem;font-size:.86rem}
 /* stakeholder game */
-.meters{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin:0 0 1.2rem}
+.meters{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin:0 0 1.2rem}
 .meter{background:#fff;border:1px solid var(--line);border-radius:8px;padding:.6rem .7rem}
 .meter small{display:block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c8b81}
 .meter b{font-size:1.3rem}
@@ -88,5 +88,5 @@
 @media (max-width:900px){
   .jd-grid,.out-grid,.summary-grid{grid-template-columns:1fr}
   .elt-body{grid-template-columns:1fr}
-  .meters{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .meters{grid-template-columns:repeat(4,minmax(0,1fr))}
 }

@@ -225,3 +225,10 @@ pre.code .c{color:#6f8b7a}pre.code .s{color:#e7c27d}pre.code .k{color:#8fdcae;fo
 .lakehouse-cta:hover{background:#fff}
 .stage-detail p a{color:var(--mint);font-weight:700}
 @media (max-width:700px){.lakehouse-cta{grid-template-columns:1fr}}
+
+.jd-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:1.2rem 0}
+.jd-links h3{grid-column:1/-1;margin:0 0 .2rem;font-size:1.05rem}
+.jd-links a{display:block;background:#fff;border:1px solid var(--line);border-top:3px solid var(--green);border-radius:8px;padding:.7rem .8rem;font-weight:700;color:var(--ink)}
+.jd-links a:hover{border-color:var(--green)}
+.jd-links small{display:block;font-size:.66rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:.15rem}
+@media (max-width:860px){.jd-links{grid-template-columns:1fr 1fr}}

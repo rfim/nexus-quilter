@@ -9,254 +9,15 @@
 // Unity Catalog part: three-level names (nexus.<schema>.<table>), grants, column masks and row
 // filters, applied according to the persona you "run as". It is a simulation of the behaviour,
 // not Databricks itself.
-const DUCKDB = "https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm";
-const PARQUET = "https://cdn.jsdelivr.net/npm/parquet-wasm@0.6.1/esm/parquet_wasm.js";
-const PARQUET_WASM = "https://cdn.jsdelivr.net/npm/parquet-wasm@0.6.1/esm/parquet_wasm_bg.wasm";
-const BASE = new URL("assets/lakehouse/", document.baseURI);
-const MAX_ROWS = 200;
+import { openLakehouse, PERSONAS } from "./engine.js";
+
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-
-// ---- personas: who you are decides grants, masks and row filters ------------------------------
-const PERSONAS = [
-  { key: "engineer", label: "VIM · data platform engineer", groups: ["grp_platform"], mask: "hash" },
-  { key: "dpo", label: "Data protection officer", groups: ["grp_dpo"], mask: "none" },
-  { key: "finance", label: "Finance analyst", groups: ["grp_finance"], mask: "redact" },
-  { key: "exec", label: "Executive MI (all entities)", groups: ["grp_exec_mi"], mask: "redact" },
-  { key: "affluent", label: "Executive MI (Affluent only)", groups: ["grp_exec_mi"], mask: "redact", rowFilter: "affluent" },
-  { key: "marketing", label: "Marketing analyst", groups: ["grp_marketing"], mask: "redact" },
-  { key: "hr", label: "People analytics (HR)", groups: ["grp_hr"], mask: "redact" },
-];
-let persona = PERSONAS[0];
-
-function canRead(t, p = persona) {
-  const g = new Set(p.groups);
-  if (t.layer === "bronze") return g.has("grp_platform");
-  if (t.layer === "silver") return g.has("grp_platform") || g.has("grp_dpo");
-  if (t.name === "nexus.gold.fct_platform_transaction") return g.has("grp_platform") || g.has("grp_finance") || g.has("grp_dpo");
-  return g.has("grp_platform") || g.has("grp_dpo") || t.read.some((r) => g.has(r));
-}
-function grantsFor(t) {
-  if (t.layer === "bronze") return ["grp_platform"];
-  if (t.layer === "silver") return ["grp_platform", "grp_dpo"];
-  if (t.name === "nexus.gold.fct_platform_transaction") return ["grp_platform", "grp_finance", "grp_dpo"];
-  return ["grp_platform", "grp_dpo", ...t.read];
-}
-
-// ---- Delta log replay -----------------------------------------------------------------------
-const TABLES = new Map();      // "nexus.gold.x" -> table
-const loaded = new Map();       // data file path -> DuckDB table holding its rows
-let pq;
-
-async function loadTable(t) {
-  t.commits = [];
-  for (let v = 0; v < t.versions; v++) {
-    const text = await (await fetch(new URL(`${t.path}/_delta_log/${String(v).padStart(20, "0")}.json`, BASE))).text();
-    t.commits.push({ version: v, actions: text.trim().split("\n").map((l) => JSON.parse(l)) });
-  }
-  t.current = t.versions - 1;
-  return t;
-}
-
-function snapshot(t, version = t.current) {
-  if (version < 0 || version > t.current) throw new Error(`[DELTA_VERSIONS_NOT_CONTIGUOUS] Cannot time travel ${t.name} to version ${version}. Available versions: [0, ${t.current}].`);
-  const files = new Map();
-  let meta = null, info = null;
-  for (const c of t.commits.slice(0, version + 1)) {
-    for (const a of c.actions) {
-      if (a.metaData) meta = a.metaData;
-      if (a.add) files.set(a.add.path, a.add);
-      if (a.remove) files.delete(a.remove.path);
-      if (a.commitInfo) info = a.commitInfo;
-    }
-  }
-  const fields = JSON.parse(meta.schemaString).fields;
-  return { version, files: [...files.values()], fields, info };
-}
-
-function versionAt(t, ts) {
-  const when = Date.parse(ts);
-  let found = -1;
-  for (const c of t.commits) {
-    const info = c.actions.find((a) => a.commitInfo)?.commitInfo;
-    if (info && info.timestamp <= when) found = c.version;
-  }
-  if (found < 0) throw new Error(`[DELTA_TIMESTAMP_EARLIER_THAN_COMMIT_RETENTION] ${ts} is before the first commit of ${t.name}.`);
-  return found;
-}
-
-const DUCK_TYPES = { string: "VARCHAR", double: "DOUBLE", long: "BIGINT", integer: "INTEGER", date: "DATE",
-  timestamp: "TIMESTAMP", boolean: "BOOLEAN", float: "FLOAT", short: "SMALLINT", byte: "TINYINT" };
-function duckType(type) {
-  if (typeof type === "object" && type.type === "array") return `${duckType(type.elementType)}[]`;
-  const m = String(type).match(/^decimal\((\d+),\s*(\d+)\)$/);
-  return m ? `DECIMAL(${m[1]},${m[2]})` : DUCK_TYPES[type] || "VARCHAR";
-}
-function deltaType(type) { return typeof type === "object" ? `array<${type.elementType}>` : type; }
-
-async function loadFile(name) {
-  if (!loaded.has(name)) {
-    const bytes = new Uint8Array(await (await fetch(new URL(name, BASE))).arrayBuffer());
-    const table = `f${loaded.size}`;
-    await conn.insertArrowFromIPCStream(pq.readParquet(bytes).intoIPCStream(), { name: table, schema: "main", create: true });
-    loaded.set(name, table);
-  }
-  return loaded.get(name);
-}
-
-// A version is the union of the data files its log says are active
-async function scan(t, version) {
-  const snap = snapshot(t, version);
-  if (!snap.files.length) {
-    return `(SELECT ${snap.fields.map((f) => `NULL::${duckType(f.type)} AS "${f.name}"`).join(", ")} WHERE false)`;
-  }
-  const parts = [];
-  for (const f of snap.files) parts.push(`SELECT * FROM main.${await loadFile(`${t.path}/${f.path}`)}`);
-  return `(${parts.join(" UNION ALL BY NAME ")})`;
-}
-
-// Unity Catalog: column masks and row filters wrap the scan
-async function governed(t, version) {
-  const snap = snapshot(t, version);
-  const src = await scan(t, version);
-  const pii = Object.keys(t.pii || {});
-  const replace = pii.filter(() => persona.mask !== "none").map((c) => {
-    const f = snap.fields.find((x) => x.name === c);
-    if (!f) return null;
-    if (f.type === "boolean") return `NULL::BOOLEAN AS "${c}"`;
-    return persona.mask === "hash" ? `sha256(lower(trim("${c}"))) AS "${c}"` : `'***' AS "${c}"`;
-  }).filter(Boolean);
-  const hasEntity = snap.fields.some((f) => f.name === "legal_entity");
-  const where = persona.rowFilter && hasEntity ? ` WHERE legal_entity = '${persona.rowFilter}'` : "";
-  return `(SELECT *${replace.length ? ` REPLACE (${replace.join(", ")})` : ""} FROM ${src}${where})`;
-}
-
-// ---- DuckDB ---------------------------------------------------------------------------------
-let duck, db, conn;
-async function boot() {
-  setEngine("Loading DuckDB-WASM and parquet-wasm…");
-  pq = await import(PARQUET);
-  await pq.default(PARQUET_WASM);
-  duck = await import(DUCKDB);
-  const bundle = await duck.selectBundle(duck.getJsDelivrBundles());
-  const workerUrl = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker}");`], { type: "text/javascript" }));
-  db = new duck.AsyncDuckDB(new duck.VoidLogger(), new Worker(workerUrl));
-  await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-  await db.open({ query: { castBigIntToDouble: true, castDecimalToDouble: true } });
-  URL.revokeObjectURL(workerUrl);
-  conn = await db.connect();
-  await conn.query("ATTACH ':memory:' AS nexus");
-  for (const s of ["bronze", "silver", "gold"]) await conn.query(`CREATE SCHEMA IF NOT EXISTS nexus.${s}`);
-
-  setEngine("Replaying Delta logs…");
-  const cat = await (await fetch(new URL("catalog.json", BASE))).json();
-  await Promise.all(cat.tables.map(async (t) => TABLES.set(t.name, await loadTable(t))));
-  await refreshViews();
-  const v = (await conn.query("SELECT version() AS v")).toArray()[0].v;
-  setEngine(`DuckDB ${v} · ${TABLES.size} Delta tables`);
-}
-
-async function refreshViews() {
-  for (const t of TABLES.values()) {
-    await conn.query(`CREATE OR REPLACE VIEW ${t.name} AS SELECT * FROM ${await governed(t, t.current)}`);
-  }
-}
-
-function setEngine(s) { $("#engine").textContent = s; }
-
-// ---- SQL: Databricks / Delta syntax on top of DuckDB ----------------------------------------
-const REF = /\bnexus\.(bronze|silver|gold)\.(\w+)(?:\s+(?:VERSION\s+AS\s+OF\s+(\d+)|TIMESTAMP\s+AS\s+OF\s+'([^']+)')|@v(\d+))?/gi;
-
-function table(name) {
-  const t = TABLES.get(name.toLowerCase());
-  if (!t) throw new Error(`[TABLE_OR_VIEW_NOT_FOUND] The table or view \`${name}\` cannot be found.`);
-  return t;
-}
-function checkGrant(t) {
-  if (!canRead(t)) throw new Error(`[INSUFFICIENT_PERMISSIONS] Insufficient privileges:\nUser '${persona.label}' (${persona.groups.join(", ")}) does not have SELECT on Table '${t.name}'.\nGranted to: ${grantsFor(t).join(", ")}`);
-}
-
-async function special(sql) {
-  let m;
-  if ((m = sql.match(/^DESCRIBE\s+HISTORY\s+([\w.]+)$/i))) {
-    const t = table(m[1]);
-    return { columns: ["version", "timestamp", "operation", "summary", "operationMetrics", "engineInfo"],
-      rows: [...t.commits].reverse().map((c) => {
-        const i = c.actions.find((a) => a.commitInfo).commitInfo, mm = i.operationMetrics || {};
-        const summary = i.operation === "MERGE"
-          ? `inserted ${mm.numTargetRowsInserted ?? 0} · updated ${mm.numTargetRowsUpdated ?? 0} · deleted ${mm.numTargetRowsDeleted ?? 0} · source rows ${mm.numSourceRows ?? "?"}`
-          : `rows written ${mm.numOutputRows ?? "?"} · files ${mm.numFiles ?? "?"}`;
-        return [c.version, new Date(i.timestamp).toISOString().replace("T", " ").slice(0, 19), i.operation,
-          summary, JSON.stringify(mm), i.engineInfo];
-      }) };
-  }
-  if ((m = sql.match(/^DESCRIBE\s+DETAIL\s+([\w.]+)$/i))) {
-    const t = table(m[1]), s = snapshot(t);
-    return { columns: ["format", "name", "location", "currentVersion", "numFiles", "sizeInBytes", "owner", "comment"],
-      rows: [["delta", t.name, `assets/lakehouse/${t.path}`, t.current, s.files.length,
-        s.files.reduce((a, f) => a + f.size, 0), t.owner, t.comment]] };
-  }
-  if ((m = sql.match(/^DESCRIBE\s+(?:TABLE\s+)?([\w.]+)$/i))) {
-    const t = table(m[1]);
-    return { columns: ["col_name", "data_type", "tag"], rows: snapshot(t).fields.map((f) => [f.name, deltaType(f.type), t.pii?.[f.name] ? `pii: ${t.pii[f.name]}` : null]) };
-  }
-  if ((m = sql.match(/^SHOW\s+TABLES\s+IN\s+nexus\.(\w+)$/i))) {
-    return { columns: ["database", "tableName", "versions", "canSelect"],
-      rows: [...TABLES.values()].filter((t) => t.layer === m[1].toLowerCase()).map((t) => [`nexus.${t.layer}`, t.name.split(".")[2], t.versions, canRead(t)]) };
-  }
-  if ((m = sql.match(/^SHOW\s+GRANTS\s+ON\s+(?:TABLE\s+)?([\w.]+)$/i))) {
-    const t = table(m[1]);
-    return { columns: ["principal", "actionType", "objectType", "objectKey"], rows: grantsFor(t).map((g) => [g, "SELECT", "TABLE", t.name]) };
-  }
-  if (/^SELECT\s+current_user\(\)$/i.test(sql)) return { columns: ["current_user()"], rows: [[persona.label]] };
-  return null;
-}
-
-async function rewrite(sql) {
-  const parts = [];
-  let last = 0;
-  for (const m of sql.matchAll(REF)) {
-    const t = table(`nexus.${m[1]}.${m[2]}`);
-    checkGrant(t);
-    parts.push(sql.slice(last, m.index));
-    const v = m[3] ?? m[5];
-    if (v != null) parts.push(await governed(t, Number(v)));
-    else if (m[4]) parts.push(await governed(t, versionAt(t, m[4])));
-    else parts.push(m[0]);
-    last = m.index + m[0].length;
-  }
-  return parts.join("") + sql.slice(last);
-}
-
-async function runSQL(text) {
-  const statements = text.split(";").map((s) => s.replace(/--[^\n]*/g, "").trim()).filter(Boolean);
-  let result = null;
-  const t0 = performance.now();
-  for (const s of statements) {
-    result = (await special(s)) ?? arrowRows(await conn.query(await rewrite(s)));
-  }
-  return { ...result, ms: Math.round(performance.now() - t0) };
-}
-
-function arrowRows(tbl) {
-  const fields = tbl.schema.fields;
-  const fmt = fields.map((f) => {
-    const ty = String(f.type);
-    if (/^Date/.test(ty)) return (v) => v == null ? null : new Date(v).toISOString().slice(0, 10);
-    if (/^Timestamp/.test(ty)) {
-      const div = [1e-3, 1, 1e3, 1e6][f.type.unit] ?? 1;   // seconds, ms, us, ns -> ms
-      return (v) => v == null ? null : new Date(Number(v) / div).toISOString().replace("T", " ").slice(0, 19);
-    }
-    return (v) => v == null ? null : (typeof v === "object" && v.toJSON ? JSON.stringify(v.toJSON()) : v);
-  });
-  const rows = [];
-  for (const r of tbl) {
-    if (rows.length >= MAX_ROWS) break;
-    const o = r.toJSON();
-    rows.push(fields.map((f, i) => fmt[i](o[f.name])));
-  }
-  return { columns: fields.map((f) => f.name), rows, total: tbl.numRows };
-}
+let lake;
+const runSQL = (s) => lake.runSQL(s);
+const canRead = (t) => lake.canRead(t);
+const snapshot = (t, v) => lake.snapshot(t, v);
+const setEngine = (s) => { $("#engine").textContent = s; };
 
 function renderResult(el, res, err) {
   if (err) { el.innerHTML = `<div class="err">${esc(err.message || err)}</div>`; return; }
@@ -264,7 +25,7 @@ function renderResult(el, res, err) {
   const body = res.rows.map((r) => `<tr>${r.map((v) => v == null ? '<td class="null">null</td>'
     : `<td class="${typeof v === "number" ? "num" : ""}">${esc(typeof v === "number" ? (Number.isInteger(v) ? v : +v.toFixed(4)) : v)}</td>`).join("")}</tr>`).join("");
   const n = res.total ?? res.rows.length;
-  el.innerHTML = `<div class="meta">${n.toLocaleString("en-GB")} row${n === 1 ? "" : "s"}${n > res.rows.length ? ` · showing ${res.rows.length}` : ""} · ${res.ms} ms · run as ${esc(persona.label)}</div><table>${head}${body}</table>`;
+  el.innerHTML = `<div class="meta">${n.toLocaleString("en-GB")} row${n === 1 ? "" : "s"}${n > res.rows.length ? ` · showing ${res.rows.length}` : ""} · ${res.ms} ms · run as ${esc(lake.persona.label)}</div><table>${head}${body}</table>`;
 }
 
 // ---- notebooks ------------------------------------------------------------------------------
@@ -399,7 +160,7 @@ async function renderTable(t) {
     <div><small>Your access</small><b>${allowed ? '<span class="tag ok">SELECT</span>' : '<span class="tag">none</span>'}</b></div></div>
     <div class="cell"><div class="cell-bar"><span class="lang">Columns</span></div><div class="out" id="cols"></div></div>
     <div class="cell"><div class="cell-bar"><span class="lang">History</span></div><div class="out" id="hist"></div></div>
-    <div class="cell"><div class="cell-bar"><span class="lang">Sample data</span><span>run as ${esc(persona.label)}</span></div><div class="out" id="sample"></div></div></div>`;
+    <div class="cell"><div class="cell-bar"><span class="lang">Sample data</span><span>run as ${esc(lake.persona.label)}</span></div><div class="out" id="sample"></div></div></div>`;
   await ready;
   renderResult($("#cols"), await runSQL(`DESCRIBE ${t.name}`));
   renderResult($("#hist"), await runSQL(`DESCRIBE HISTORY ${t.name}`));
@@ -408,11 +169,11 @@ async function renderTable(t) {
 
 function renderTree() {
   const bySchema = { bronze: [], silver: [], gold: [] };
-  for (const t of TABLES.values()) bySchema[t.layer].push(t);
+  for (const t of lake.tables.values()) bySchema[t.layer].push(t);
   $("#tree").innerHTML = `<details open><summary>🗂 nexus</summary>${Object.entries(bySchema).map(([s, ts]) =>
     `<details class="schema" ${s === "gold" ? "open" : ""}><summary>${s}</summary>${ts.sort((a, b) => a.name.localeCompare(b.name)).map((t) =>
       `<button data-name="${t.name}">${canRead(t) ? "▦" : '<span class="lock">🔒</span>'} ${t.name.split(".")[2]}<span class="ver">v${t.current}</span></button>`).join("")}</details>`).join("")}</details>`;
-  document.querySelectorAll("#tree button").forEach((b) => b.onclick = () => renderTable(TABLES.get(b.dataset.name)));
+  document.querySelectorAll("#tree button").forEach((b) => b.onclick = () => renderTable(lake.tables.get(b.dataset.name)));
 }
 
 // ---- contract checks notebook, from the compiled contracts --------------------------------
@@ -424,13 +185,14 @@ function toDuck(sqlText) {
 // ---- boot -----------------------------------------------------------------------------------
 $("#persona").innerHTML = PERSONAS.map((p) => `<option value="${p.key}">${esc(p.label)}</option>`).join("");
 $("#persona").onchange = async (e) => {
-  persona = PERSONAS.find((p) => p.key === e.target.value);
-  setEngine(`Applying grants and masks for ${persona.label}…`);
-  await ready; await refreshViews(); renderTree();
-  setEngine(`Running as ${persona.label}`);
+  await ready;
+  const p = PERSONAS.find((x) => x.key === e.target.value);
+  setEngine(`Applying grants and masks for ${p.label}…`);
+  await lake.setPersona(p.key); renderTree();
+  setEngine(`Running as ${p.label}`);
 };
 
-const ready = boot();
+const ready = openLakehouse({ status: setEngine }).then((l) => { lake = l; });
 ready.then(async () => {
   renderTree();
   const site = await (await fetch("assets/data/site.json")).json();

@@ -18,15 +18,22 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `contracts/` | Source contracts (`sources/`) and the five department contracts (`products/`). |
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
-| `simulate.html`, `assets/sim/` | The ELT and stakeholder simulations, starting from the raw landing files. |
+| `simulate.html`, `assets/sim/` | The simulations hub, the ELT run and the stakeholder week, starting from the raw landing files. |
+| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html` | One simulation per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
 | `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
 
 ## Simulations
 
-`simulate.html` maps the job description to two hands-on simulations:
+`simulate.html` is the hub. Every simulation runs on the same in-browser lakehouse (`assets/engine.js`), so the numbers agree from page to page.
 
 - **ELT end to end** (engineering delivery, operational excellence). The browser fetches the raw landing files and runs the pipeline as DuckDB SQL: MERGE into bronze, quality split from the source contract, SCD2 and conformed silver, the incremental fact and five products, every department's contract checks, a late batch and a restatement, then messages to the data owners. Scenarios: replay every feed, malformed rows, late corrections, an upstream schema change (the load stops before writing, with an incident card), and the planted ledger break. With the defaults it matches the Spark run: 13,022 in bronze, 15 quarantined, 13,007 valid, 39/40 checks.
-- **Stakeholder week** (cross-functional collaboration, influence). Ten requests from Finance, Marketing, HR, Executive and Product; each choice moves department trust, team focus and platform risk, with my reasoning after each one.
+- **Stakeholder week** (4 · cross-functional collaboration). Thirteen requests from Finance, Marketing, HR, Executive, Product and the architecture, platform and governance teams; each choice moves trust, team focus and platform risk, with my reasoning after each one.
+- **Design review** (1 · technical leadership). Six design decisions for a Consumer Duty price-and-value product, each with an evidence query on the lakehouse, ending in a downloadable ADR.
+- **Requirement to release** (2 · engineering delivery). Clarifying questions, a contract diff with its blast radius, a plan, and a CI gate whose metric diff is computed on the Delta tables (the buggy version is blocked at 1.07%).
+- **Review a PR** (3 · mentoring). A new engineer's PySpark PR with a committed key, PII in gold, append instead of MERGE, `toPandas()` and no test; flag the lines, then choose comments that teach. The append bug is proved on bronze.
+- **On-call shift** (5 · operational excellence). Live SLO tiles, triage, the planted £250 reconciliation break investigated with three queries, an incident record with time to acknowledge and mitigate, and a volume alert tuned against a year of real daily counts.
+- **Consumer Duty** (regulatory). The analyst can't read the vulnerability flag; the pipeline's service principal publishes an aggregate with a minimum cell size, which shows vulnerable clients waiting about twice as long on transfers out.
+- **Streaming** (batch and real-time). 13,242 events in micro-batches, each a real MERGE, with a watermarked keyed aggregate. With MERGE and no watermark it matches the lakehouse exactly; the other settings show why the certified numbers stay on batch.
 
 ## The lakehouse in your browser
 

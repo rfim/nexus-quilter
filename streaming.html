@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Streaming · NEXUS Simulations</title>
+<meta name="description" content="Batch and real-time: stream the platform's transactions through micro-batches, with MERGE, watermarks and late corrections, and compare the result with the lakehouse.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
+</head>
+<body class="sim jd-page">
+<main class="shell sim-main">
+  <p class="jd-crumb">Skills · Batch and real-time processing</p>
+  <h1>Stream it, then check it against the lakehouse</h1>
+  <p class="jd-lede">Platform Ops want today's flows as they happen. Here the platform's 13,242 change events (with 180 replayed duplicates, 15 malformed rows and 40 corrections that arrive months late) flow through Structured Streaming-style micro-batches. Choose the settings, run it, and see whether the stream agrees with the batch lakehouse.</p>
+  <blockquote class="jd-quote">From the job description: <b>“Experience designing batch and real-time data processing solutions”</b>, with Azure Event Hubs and Databricks Structured Streaming as the usual tools. Each micro-batch below is a real DuckDB MERGE, like <code>foreachBatch</code> into a Delta table.</blockquote>
+  <p class="engine-line" id="engine">Starting the lakehouse…</p>
+  <div class="card"><span class="step">Settings</span><h2>How should the stream run?</h2>
+    <fieldset class="scenarios" id="opts" style="margin-top:.6rem"><legend>Choose one in each group</legend>
+      <div><b>maxOffsetsPerTrigger</b>
+        <label><input type="radio" name="batch" value="250"><span>250 events per batch</span></label>
+        <label><input type="radio" name="batch" value="1000" checked><span>1,000 events per batch</span></label>
+        <label><input type="radio" name="batch" value="4000"><span>4,000 events per batch</span></label></div>
+      <div><b>Bronze sink</b>
+        <label><input type="radio" name="sink" value="merge" checked><span>MERGE on transaction_id (newest cdc_lsn wins)<small>foreachBatch + MERGE INTO</small></span></label>
+        <label><input type="radio" name="sink" value="append"><span>Append<small>writeStream to a table</small></span></label></div>
+      <div><b>Watermark on the net flows aggregate</b>
+        <label><input type="radio" name="wm" value="2"><span>2 days</span></label>
+        <label><input type="radio" name="wm" value="30" checked><span>30 days</span></label>
+        <label><input type="radio" name="wm" value="none"><span>None (keep all state)</span></label></div>
+    </fieldset>
+    <button class="btn-run" id="run" disabled>Start the stream</button></div>
+  <div class="kv" id="live"></div>
+  <div class="elt-body"><div class="console" id="console" aria-live="polite"></div><div class="task-detail" id="cmp"><h3>Stream vs lakehouse</h3><p class="muted">Run the stream to compare.</p></div></div>
+  <div id="after"></div>
+</main>
+<script type="module" src="assets/streaming.js"></script>
+</body>
+</html>

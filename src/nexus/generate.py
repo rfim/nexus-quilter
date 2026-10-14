@@ -119,13 +119,18 @@ def generate(seed: int = 7) -> dict:
                    for k, v in sorted(ledger.items())]
 
     # service journeys (Consumer Duty: can clients leave as easily as they join?)
+    # planted for the Consumer Duty simulation: vulnerable clients wait longer to leave or withdraw
+    vulnerable = {c["client_id"] for c in clients if c["vulnerable"]}
     journeys = []
     for j in range(3200):
         kind = rng.choices(["transfer_in", "transfer_out", "withdrawal", "switch"], [30, 18, 34, 18])[0]
         created = START + timedelta(days=rng.randint(0, (END - START).days - 20))
+        client_id = rng.choice(clients)["client_id"]
         base = {"transfer_in": 9, "transfer_out": 13, "withdrawal": 3, "switch": 2}[kind]
+        if client_id in vulnerable and kind in ("transfer_out", "withdrawal"):
+            base *= 1.8
         done = None if rng.random() < 0.04 else created + timedelta(days=max(1, int(rng.gammavariate(2.2, base / 2.2))))
-        journeys.append({"journey_id": f"J{j:05d}", "client_id": rng.choice(clients)["client_id"],
+        journeys.append({"journey_id": f"J{j:05d}", "client_id": client_id,
                          "journey_type": kind, "created_on": created, "completed_on": done})
 
     # colleagues: HR extract (names are personal data and are masked downstream)
