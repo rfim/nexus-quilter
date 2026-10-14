@@ -111,9 +111,15 @@ targets:
   prod: {mode: production}`;
   view.innerHTML = `<div class="nb-head"><div><h1>Orchestration · nexus-daily</h1>
     <p>How I orchestrate: one job, defined in an Asset Bundle, deployed through CI to dev and prod. Every task is safe to re-run, so a failure is fixed with a repair run from the failed task, not a restart. The timings are the real recorded run.</p></div>
-    <div class="orch-btns"><button class="btn" id="replay">▶ Replay the run</button><button class="btn ghost" id="fail">Replay with a failure</button></div></div>
+    </div>
+    <div class="scen" role="radiogroup" aria-label="Scenario for this run">
+      <span>Scenario</span>
+      ${[["clean", "Clean run"], ["drift", "Schema drift · fails"], ["small", "Small files"], ["skew", "Data skew"], ["spill", "Spill to disk"]].map(([k, l], i) =>
+        `<label><input type="radio" name="scen" value="${k}" ${i ? "" : "checked"}><span>${l}</span></label>`).join("")}
+      <div class="orch-btns"><button class="btn" id="replay">▶ Run</button><button class="btn ghost" id="fix" hidden>Apply the fix and re-run</button></div></div>
     <div class="orch-clock"><span id="clk">05:30:00</span><span id="status" class="pill">scheduled · Mon–Fri 05:30 Europe/London</span></div>
     <div class="dagflow" id="dag">${tasks.map((t, i) => `<div class="tnode" data-i="${i}"><small>${String(i + 1).padStart(2, "0")}</small><b>${esc(t.label)}</b><i><em></em></i><span>${t.duration_s.toFixed(1)}s</span></div>`).join('<div class="tarrow" aria-hidden="true"></div>')}</div>
+    <div class="stagev" id="stage" aria-live="polite"><div class="sv-h"><b>Spark stage view</b><span id="svt">Pick a scenario and press Run. The stage view shows what the executors are doing inside the running task.</span></div><div class="sv-body" id="svb"></div><div class="sv-m" id="svm"></div></div>
     <div class="cell runlog"><div class="cell-bar"><span class="lang">Run log</span><span>what Spark recorded, and what the team did about it · click an entry</span></div>
       <div class="rl-grid"><ol class="rl-list" id="rl" aria-live="polite"></ol><div class="rl-detail" id="rld"><p class="muted">Measuring the tables…</p></div></div></div>
     <div class="orch-grid">
@@ -127,45 +133,124 @@ targets:
         <li><b>Right trigger for the source.</b> Schedules for batch, file-arrival triggers for drops, continuous streams only where someone needs it live.</li></ul></div></div>`;
   const nodes = [...view.querySelectorAll(".tnode")];
   const log = runLog(view, site, lake);
-  const reset = () => nodes.forEach((n) => { n.className = "tnode"; $("em", n).style.width = "0"; });
+  const reset = () => nodes.forEach((n, i) => { n.className = "tnode"; $("em", n).style.width = "0"; $("span", n).textContent = `${tasks[i].duration_s.toFixed(1)}s`; });
   const clock = (s) => { const d = new Date(Date.UTC(2026, 9, 1, 5, 30, 0) + s * 1000); $("#clk", view).textContent = d.toISOString().slice(11, 19); };
-  let running = false;
-  async function replay(failAt = -1, from = 0) {
-    if (running) return; running = true;
-    view.querySelectorAll(".orch-btns button").forEach((b) => b.disabled = true);
+  const ratio = () => { const m = log.m; return m ? m.entity[0].n / m.entity[1].n : 6; };
+  // what each bad thing does to a run, and what the fix changes
+  const SCEN = {
+    small: { task: "ingest", factor: 4, entry: "small", fixEntry: "smallfix", title: "Small files in bronze",
+      bad: () => "Ingest opened 1,240 files of about 190 KB each. Most of the time went on listing, opening and reading footers, not on data.",
+      good: () => "With optimizeWrite and autoCompact on, and one OPTIMIZE, ingest read 3 files of about 80 MB each." },
+    skew: { task: "gold", factor: () => ratio(), entry: "skew", fixEntry: "skewfix", title: "Data skew in the gold join",
+      bad: () => `One shuffle partition held the hot key: its task ran ${ratio().toFixed(1)}× the median while the other executors sat idle.`,
+      good: () => `AQE split the hot partition into ${Math.ceil(ratio())} pieces; the slowest task is now close to the median.` },
+    spill: { task: "restate", factor: 3, entry: "spill", fixEntry: "spillfix", title: "Spill during the restatement",
+      bad: () => "The sort didn't fit in execution memory: Spark wrote 2.4 GB of sorted runs to local disk and merged them back.",
+      good: () => "With AQE choosing partition sizes (128 MB) and a narrower restatement window, the sort fits in memory: no spill." },
+  };
+  const sv = { t: $("#svt", view), b: $("#svb", view), m: $("#svm", view) };
+  // ---- stage views: one per scenario, plus an even one for healthy tasks
+  function stageView(kind, fixed, label) {
+    if (kind === "skew") {
+      const r = ratio(), n = fixed ? 7 + Math.ceil(r) : 8;
+      sv.t.textContent = `${label} · ${n} shuffle tasks${fixed ? " · AQE skew join on" : " · one hot key"}`;
+      sv.b.innerHTML = `<div class="sv-tasks">${Array.from({ length: n }, (_, i) => `<div><small>task ${i}</small><i><em data-i="${i}"></em></i><b></b></div>`).join("")}</div>`;
+      const ems = [...sv.b.querySelectorAll("em")];
+      return (k) => {
+        ems.forEach((e, i) => { const len = fixed ? (i < 7 ? 1 / r * 1.05 : 1 / Math.ceil(r) * 1.1) : (i === 3 ? 1 : 1 / r * (0.9 + (i % 3) * 0.06));
+          const done = Math.min(1, k / Math.min(1, len * (fixed ? 1 : 1)));
+          e.style.width = `${Math.min(1, k / len) * (fixed ? 100 : i === 3 ? 100 : 100 / r) }%`;
+          e.className = !fixed && i === 3 ? "hot" : ""; e.parentNode.nextElementSibling.textContent = done >= 1 && k < 1 && !(fixed) && i !== 3 ? "idle" : ""; });
+        sv.m.innerHTML = fixed ? `<span>slowest task <b>${(1.1).toFixed(1)}×</b> median</span><span>executors busy <b>${Math.round(Math.min(1, k) * 100)}%</b></span>`
+          : `<span>slowest task <b>${(1 + (r - 1) * k).toFixed(1)}×</b> median</span><span>idle executors <b>${k > 1 / r ? 7 : 0} of 8</b></span>`;
+      };
+    }
+    if (kind === "small") {
+      const N = fixed ? 3 : 1240;
+      sv.t.textContent = `${label} · ${fixed ? "3 files after OPTIMIZE" : "1,240 files to open"}`;
+      sv.b.innerHTML = `<div class="sv-files ${fixed ? "big" : ""}">${Array.from({ length: N }, () => "<i></i>").join("")}</div>`;
+      const cells = sv.b.querySelectorAll("i");
+      let lit = 0;
+      return (k) => {
+        const want = Math.floor(k * N); for (; lit < want; lit++) cells[lit].className = "on";
+        sv.m.innerHTML = `<span>files opened <b>${fmt(Math.floor(k * N))} / ${fmt(N)}</b></span><span>avg file <b>${fixed ? "80 MB" : "190 KB"}</b></span><span>time on file overhead <b>${fixed ? "4%" : "78%"}</b></span>`;
+      };
+    }
+    if (kind === "spill") {
+      sv.t.textContent = `${label} · sort in executor memory`;
+      sv.b.innerHTML = `<div class="sv-mem"><div><small>execution memory</small><i><em></em></i></div><div><small>spilled to local disk</small><i class="disk"><em></em></i></div></div>`;
+      const [mem, disk] = sv.b.querySelectorAll("em");
+      return (k) => {
+        const memUse = fixed ? Math.min(0.7, k * 1.4) : Math.min(1, k * 3.3);
+        mem.style.width = `${memUse * 100}%`; mem.className = memUse >= 1 ? "hot" : "";
+        const spill = fixed ? 0 : Math.max(0, (k - 0.3) / 0.7) * 2.4;
+        disk.style.width = `${spill / 2.4 * 100}%`;
+        sv.m.innerHTML = `<span>memory <b>${Math.round(memUse * 100)}%</b></span><span>spill <b>${spill.toFixed(1)} GB</b></span>`;
+      };
+    }
+    sv.t.textContent = `${label} · 8 tasks, evenly balanced`;
+    sv.b.innerHTML = `<div class="sv-tasks">${Array.from({ length: 8 }, (_, i) => `<div><small>task ${i}</small><i><em></em></i><b></b></div>`).join("")}</div>`;
+    const ems = [...sv.b.querySelectorAll("em")];
+    sv.m.innerHTML = "";
+    return (k) => ems.forEach((e, i) => { e.style.width = `${Math.min(1, k * (1 + (i % 4) * 0.04)) * 100}%`; e.className = ""; });
+  }
+  let running = false, lastScen = "clean";
+  const busy = (on) => { running = on; view.querySelectorAll(".orch-btns button, .scen input").forEach((b) => b.disabled = on); };
+  async function replay({ scen = "clean", fixed = false, from = 0 } = {}) {
+    if (running) return; busy(true);
+    const S = SCEN[scen], failAt = scen === "drift" && !from ? tasks.findIndex((t) => t.key === "late") : -1;
     if (from === 0) { reset(); log.clear(); }
-    $("#status", view).className = "pill amber"; $("#status", view).textContent = from ? "repair run · from the failed task" : "running";
-    const speed = still ? 0.02 : 8 / total;   // whole run in about 8 seconds
+    $("#fix", view).hidden = true;
+    $("#status", view).className = "pill amber";
+    $("#status", view).textContent = from ? "repair run · from the failed task" : fixed ? `re-run with the fix · ${S.title.toLowerCase()}` : "running";
+    const speed = still ? 0.02 : 8 / total;   // a clean run takes about 8 seconds
+    let elapsed = from ? tasks[from].start_s - t0 : 0, slow = null;
     for (let i = from; i < tasks.length; i++) {
       const t = tasks[i], n = nodes[i];
-      n.className = "tnode running";
-      const ms = Math.max(250, t.duration_s * speed * 1000);
-      const start = performance.now();
+      const hit = S && S.task === t.key;
+      const f = hit && !fixed ? (typeof S.factor === "function" ? S.factor() : S.factor) : 1;
+      const dur = t.duration_s * f;
+      n.className = `tnode running${hit && !fixed ? " slow" : ""}`;
+      const draw = stageView(hit ? scen : "even", fixed, `${String(i + 1).padStart(2, "0")} · ${t.label}`);
+      if (hit && !fixed) { $("#status", view).className = "pill amber"; $("#status", view).textContent = `running · ${S.title.toLowerCase()} · this task is slow`; }
+      const ms = Math.max(250, dur * speed * 1000 * (hit && !fixed ? 0.55 : 1));
+      const start = performance.now(), e0 = elapsed;
       await new Promise((res) => { const step = () => { const k = Math.min(1, (performance.now() - start) / ms);
-        $("em", n).style.width = `${(i === failAt ? Math.min(k, 0.4) : k) * 100}%`; clock(t.start_s - t0 + t.duration_s * k);
+        $("em", n).style.width = `${(i === failAt ? Math.min(k, 0.4) : k) * 100}%`; clock(e0 + dur * k); draw(i === failAt ? Math.min(k, 0.4) : k);
         if (k < 1) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+      elapsed += dur;
       if (i === failAt) {
         log.add("drift");
         n.className = "tnode failed";
         nodes.slice(i + 1).forEach((x) => x.className = "tnode skipped");
+        sv.t.textContent = `${t.label} · schema check failed before MERGE, nothing written`; sv.m.innerHTML = "";
         $("#status", view).className = "pill red"; $("#status", view).textContent = "failed: schema drift on platform_transactions · nothing written";
-        $("#fail", view).textContent = "↻ Repair run from the failed task"; $("#fail", view).dataset.repair = i;
-        running = false; view.querySelectorAll(".orch-btns button").forEach((b) => b.disabled = false);
+        $("#fix", view).hidden = false; $("#fix", view).textContent = "↻ Repair run from the failed task"; $("#fix", view).onclick = () => replay({ scen: "clean", from: i });
+        busy(false); $("#replay", view).disabled = false;
         return;
       }
-      n.className = "tnode done";
+      n.className = `tnode ${hit && !fixed ? "warned" : "done"}`;
+      if (hit) { $("span", n).textContent = `${dur.toFixed(1)}s${f > 1 ? ` (${f.toFixed(1)}×)` : " · fixed"}`; slow = { i, dur, f };
+        log.add(fixed ? S.fixEntry : S.entry); }
       log.task(t.key);
     }
-    $("#status", view).className = "pill"; $("#status", view).textContent = from ? "repaired · only the failed task and its downstream re-ran" : `succeeded · ${fmt(total, 0)}s on a 2-core laptop`;
-    $("#fail", view).textContent = "Replay with a failure"; delete $("#fail", view).dataset.repair;
-    running = false; view.querySelectorAll(".orch-btns button").forEach((b) => b.disabled = false);
+    const tot = elapsed + (total - tasks.reduce((a, t) => a + t.duration_s, 0));   // plus the gaps between tasks
+    if (S && !fixed) {
+      $("#status", view).className = "pill amber";
+      $("#status", view).textContent = `succeeded, but slow · ${S.title.toLowerCase()} · run took ${fmt(tot, 0)}s instead of ${fmt(total, 0)}s · health alert sent`;
+      sv.t.textContent = S.bad(); 
+      $("#fix", view).hidden = false; $("#fix", view).textContent = "Apply the fix and re-run"; $("#fix", view).onclick = () => replay({ scen, fixed: true });
+    } else {
+      $("#status", view).className = "pill";
+      $("#status", view).textContent = from ? "repaired · only the failed task and its downstream re-ran" : fixed ? `fixed · run took ${fmt(tot, 0)}s, back to normal` : `succeeded · ${fmt(total, 0)}s on a 2-core laptop`;
+      if (fixed) sv.t.textContent = S.good();
+    }
+    busy(false);
   }
-  $("#replay", view).onclick = () => replay();
-  $("#fail", view).onclick = (e) => {
-    const r = e.currentTarget.dataset.repair;
-    if (r != null) replay(-1, +r); else replay(tasks.findIndex((t) => t.key === "late"));
-  };
+  $("#replay", view).onclick = () => replay({ scen: view.querySelector('input[name="scen"]:checked').value });
+  view.querySelectorAll('input[name="scen"]').forEach((r) => r.onchange = () => { $("#fix", view).hidden = true; });
 }
+
 
 // ---- 3. Lineage & governance --------------------------------------------------------------
 export function renderLineage(view, lake) {
@@ -378,6 +463,13 @@ schema_evolution: reject      # a rename is a contract change, not a hotfix`],
       ba: () => bars([["rows written", 0, "0"], ["published numbers changed", 0, "0"]], 1),
       team: ["Detected by the schema check; the platform owner is paged.", "Triaged: a rename upstream, agreed as a contract change the same day.", "Fixed: contract PR merged, then a repair run from this task.", "Guard: the source team's CI validates against our contract before they deploy."] },
   };
+  const fixed = (k, title, ba) => ({ ...ENTRIES[k], level: "INFO", src: "re-run with the fix", title, ba });
+  ENTRIES.smallfix = fixed("small", "Fixed: optimizeWrite + autoCompact + OPTIMIZE · 3 files, ingest back to its usual time",
+    () => bars([["files", 3, "3 files"], ["ingest time", 1, "usual"]], 3));
+  ENTRIES.skewfix = fixed("skew", () => `Fixed: AQE skew join split the hot partition · slowest task 1.1× median`,
+    () => bars([["slowest task / median, before", m.entity[0].n / m.entity[1].n, `${(m.entity[0].n / m.entity[1].n).toFixed(1)}×`, true], ["after", 1.1, "1.1×"]], m.entity[0].n / m.entity[1].n));
+  ENTRIES.spillfix = fixed("spill", "Fixed: AQE partition sizing · spill 0, restatement back to its usual time",
+    () => bars([["spill before", 2.4, "2.4 GB", true], ["spill after", 0.01, "0"]], 2.4));
   const ORDER = ["replay", "small", "broadcast", "skew", "spill", "late", "recon", "vacuum"];
   const val = (x) => typeof x === "function" ? x() : x;
   const shown = [];
@@ -403,7 +495,8 @@ schema_evolution: reject      # a rename is a contract change, not a hotfix`],
   measure(lake).then((res) => { m = res; shown.push(...ORDER); draw(); open("skew"); })
     .catch((err) => { $("#rld", view).innerHTML = `<div class="err">${esc(err.message)}</div>`; });
   return {
-    clear() { shown.length = 0; draw(); },
+    get m() { return m; },
+    clear() { shown.length = 0; draw(); $("#rld", view).innerHTML = '<p class="muted">The run is in progress. Entries appear here as each task finishes.</p>'; },
     task(key) { for (const k of ORDER) if (ENTRIES[k].task === key && !shown.includes(k)) shown.push(k); draw(); },
     add(k) { if (!shown.includes(k)) shown.push(k); draw(); if (m) open(k); },
   };
