@@ -179,12 +179,12 @@ async function renderCode(path) {
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", "false"));
   const vault = path.startsWith("data_vault/");
   let text;
-  try { text = vault ? VAULT_SQL[path.split("/")[1]] : await (await fetch(path)).text(); }
+  try { text = vault ? VAULT_SQL[path.slice("data_vault/".length)] : await (await fetch(path)).text(); }
   catch (e) { $("#view").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
   const lines = text.replace(/\n$/, "").split("\n");
   const hl = NexusHL.hl(text.replace(/\n$/, ""), langOf(path)).split("\n");
   $("#view").innerHTML = `<div class="nb-head"><div><h1 class="code-title">${esc(path)}</h1>
-    <p>${vault ? "The SQL behind each step of the Data Vault build (chapter 9), run in your browser on the live lakehouse." : "The real file from the repository: the same code ran the pipeline that built these Delta tables."} ${lines.length} lines · ${langOf(path).toUpperCase()}</p></div>
+    <p>${vault ? "The SQL behind this Data Vault (chapter 9), run step by step in your browser on the live lakehouse." : "The real file from the repository: the same code ran the pipeline that built these Delta tables."} ${lines.length} lines · ${langOf(path).toUpperCase()}</p></div>
     ${vault ? `<a class="btn ghost" href="#vault" id="tovault">Open the Data Vault build</a>` : `<a class="btn ghost" href="${REPO_URL}${path}" target="_blank" rel="noopener">Open on GitHub ↗</a>`}</div>
     <div class="code-file"><ol>${hl.map((h) => `<li>${h || " "}</li>`).join("")}</ol></div>`;
   const tv = $("#tovault"); if (tv) tv.onclick = (e) => { e.preventDefault(); showView("vault"); };
@@ -198,7 +198,9 @@ function renderTree() {
       `<button data-name="${t.name}">${canRead(t) ? "▦" : '<span class="lock">🔒</span>'} ${t.name.split(".")[2]}<span class="ver">v${t.current}</span></button>`).join("")}</details>`).join("")}</details>`
     + `<details open class="codetree"><summary>⌨ code</summary>${CODE.map(([dir, files]) => (dir ? `<details class="schema" ${dir === "src/nexus" ? "open" : ""}><summary>${dir}</summary>` : "")
         + files.map((f) => `<button data-file="${dir ? dir + "/" : ""}${f}"><span class="ext ${langOf(f)}">${f.split(".").pop()}</span> ${f}</button>`).join("") + (dir ? "</details>" : "")).join("")}
-      <details class="schema"><summary>data_vault</summary>${Object.keys(VAULT_SQL).map((f) => `<button data-file="data_vault/${f}"><span class="ext sql">sql</span> ${f}</button>`).join("")}</details></details>`;
+      <details class="schema"><summary>data_vault</summary>${[...new Set(Object.keys(VAULT_SQL).map((k) => k.split("/")[0]))].map((dir) =>
+        `<details class="schema"><summary>${dir}</summary>${Object.keys(VAULT_SQL).filter((k) => k.startsWith(dir + "/")).map((k) =>
+          `<button data-file="data_vault/${k}"><span class="ext sql">sql</span> ${k.split("/")[1]}</button>`).join("")}</details>`).join("")}</details></details>`;
   document.querySelectorAll("#tree button").forEach((b) => b.onclick = () => b.dataset.file ? renderCode(b.dataset.file) : renderTable(lake.tables.get(b.dataset.name)));
 }
 

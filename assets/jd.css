@@ -181,3 +181,13 @@
 .use-say{font-size:.88rem;background:#e7f1ea;border-radius:6px;padding:.5rem .65rem}
 @media (max-width:1100px){.use-grid{grid-template-columns:1fr}}
 .use .use-out .muted{font-size:.78rem;line-height:1.45;margin-top:.4rem}
+
+/* three vaults */
+.dv-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:0 0 1rem}
+.dv-switch button{text-align:left;border:1px solid var(--line);border-left:5px solid #cfd9d2;background:#fff;border-radius:8px;padding:.7rem .9rem;cursor:pointer;color:var(--ink)}
+.dv-switch button b{display:block;font-size:.98rem}
+.dv-switch button small{display:block;color:var(--muted);font-size:.8rem;margin-top:.15rem}
+.dv-switch button:hover{border-color:var(--green)}
+.dv-switch button[aria-pressed=true]{border-left-color:var(--green);background:#e7f1ea;box-shadow:0 0 0 2px rgba(15,123,63,.18)}
+.dv-intro{color:var(--muted);margin:.2rem 0 0;max-width:75ch;font-size:.92rem}
+@media (max-width:900px){.dv-switch{grid-template-columns:1fr}}

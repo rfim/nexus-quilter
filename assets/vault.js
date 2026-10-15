@@ -1,4 +1,7 @@
-// Chapter 9 · Bring it together: Data Vault over three Quilter businesses, on the live lakehouse.
+// Chapter 9 · Bring it together: three Data Vaults for Quilter, built on the live lakehouse.
+//   A · Client 360           three businesses describe the same client
+//   B · Adviser firms        firms, advisers and clients, with a tier change and an adviser moving firm
+//   C · Transfers and Duty   journey status history, vulnerability in its own restricted satellite
 import { $, esc, fmt, header, lakehouse, table, choose } from "./jdkit.js";
 
 let lake;
@@ -8,7 +11,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const show = (sql, lang = "sql") => `<pre class="dv-sql">${NexusHL.hl(sql.trim(), lang)}</pre>`;
 const maskNI = "concat(left(%s, 2), '••••••', right(%s, 1))";
 const mask = (c) => maskNI.replaceAll("%s", c);
+const gbp = (v) => `${v < 0 ? "−" : ""}£${fmt(Math.abs(v), 0)}`;
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const stripHead = (q) => q.replace(/^--[^\n]*\n/, "");
 
+// =============================================================================================
+// A · Client 360
+// =============================================================================================
 // ---- the three source systems, cut from the real client table ---------------------------------
 const SOURCES = `-- runs as the pipeline service principal: three extracts, three keys, three views of a client
 CREATE OR REPLACE TABLE src_platform AS                -- FNZ platform: account-centric
@@ -96,48 +105,8 @@ FROM hub_client h
 JOIN p USING (hk_client)
 LEFT JOIN adv USING (hk_client) LEFT JOIN chv USING (hk_client)`;
 
-// ---- the model diagram ------------------------------------------------------------------------
-// node geometry (centres) for the diagram and the flow animation
-const N = {
-  src1: [75, 28, "FNZ platform", "PLT- refs · accounts", "src", "src_platform"], src2: [75, 123, "QFP adviser CRM", "QFP- ids · risk profile", "src", "src_advice"],
-  src3: [75, 218, "Quilter Cheviot", "CHV- refs · mandates", "src", "src_cheviot"],
-  satp: [230, 50, "sat_client_platform", "entity · channel · accounts", "sat", "sat_client_platform"], sata: [430, 50, "sat_client_advice", "risk profile · adviser", "sat", "sat_client_advice"],
-  satc: [630, 50, "sat_client_cheviot", "mandate · portfolio manager", "sat", "sat_client_cheviot"],
-  hub: [430, 125, "hub_client", "business key: NI number", "hub", "hub_client"],
-  lnka: [230, 205, "link_client_adviser", "client ↔ adviser", "link", "link_client_adviser"], lnkp: [630, 205, "link_client_portfolio", "client ↔ Cheviot portfolio", "link", "link_client_portfolio"],
-  mart: [790, 125, "dim_client_360", "Kimball, in gold", "mart", null],
-};
-const W2 = { src: 65, sat: 70, hub: 70, link: 70, mart: 60 };
-const edgePath = (a, b) => { const [x1, y1, , , k1] = N[a], [x2, y2, , , k2] = N[b];
-  const sx = x1 + (x2 > x1 ? W2[k1] : x2 < x1 ? -W2[k1] : 0), ex = x2 + (x2 > x1 ? -W2[k2] : x2 < x1 ? W2[k2] : 0);
-  const sy = x1 === x2 ? y1 + (y2 > y1 ? 23 : -23) : y1, ey = x1 === x2 ? y2 + (y2 > y1 ? -23 : 23) : y2, m = (sx + ex) / 2;
-  return `M${sx},${sy} C${m},${sy} ${m},${ey} ${ex},${ey}`; };
-const EDGES = [["src1", "hub"], ["src2", "hub"], ["src3", "hub"], ["src1", "satp"], ["src2", "sata"], ["src3", "satc"], ["src2", "lnka"], ["src3", "lnkp"],
-  ["satp", "hub"], ["sata", "hub"], ["satc", "hub"], ["hub", "lnka"], ["hub", "lnkp"], ["hub", "mart"], ["sata", "mart"], ["satc", "mart"]];
-const FLOWS = { src: [], hub: ["src1>hub", "src2>hub", "src3>hub"], link: ["src2>lnka", "src3>lnkp", "hub>lnka", "hub>lnkp"], sat: ["src1>satp", "src2>sata", "src3>satc"],
-  day2: ["src2>sata"], audit: ["sata>hub"], mart: ["hub>mart", "sata>mart", "satc>mart", "satp>hub"] };
-let counts = {}, built = new Set();
-const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-function model(lit = new Set(), flows = []) {
-  const fl = new Set(flows);
-  const box = (id) => { const [x, y, label, sub, kind, tbl] = N[id], w = W2[kind] * 2;
-    const c = tbl && counts[tbl] != null ? `${fmt(counts[tbl])} rows` : kind === "mart" && counts.mart != null ? `${fmt(counts.mart)} clients` : sub;
-    const state = lit.has(id) || lit.has(kind) ? "on" : built.has(id) ? "built" : kind === "src" ? "" : "todo";
-    return `<g class="dvn ${kind} ${state}"><rect x="${x - w / 2}" y="${y - 23}" width="${w}" height="46" rx="8"/><text x="${x}" y="${y - 3}" class="t1">${label}</text><text x="${x}" y="${y + 12}" class="t2">${c}</text></g>`; };
-  const edges = EDGES.map(([a, b]) => { const d = edgePath(a, b), on = fl.has(`${a}>${b}`);
-    return `<path d="${d}" class="dve ${on ? "on" : ""}"/>${on && !still ? [0, 0.45, 0.9].map((t) => `<circle r="3.6" class="dvdot"><animateMotion dur="1.35s" begin="-${t}s" repeatCount="indefinite" path="${d}"/></circle>`).join("") : ""}`; }).join("");
-  $("#model").innerHTML = `<svg viewBox="0 0 860 245" role="img" aria-label="Data Vault model">${edges}${Object.keys(N).map(box).join("")}</svg>
-    <div class="dv-legend"><span class="hub">Hub: one row per business key</span><span class="link">Link: a relationship</span><span class="sat">Satellite: one source's description, with history</span><span class="mart">Mart: what people query</span></div>`;
-}
-async function refreshCounts() {
-  for (const t of Object.values(N).map((n) => n[5]).filter(Boolean)) {
-    try { const [r] = await rows(`SELECT count(*) AS n FROM ${t}`); counts[t] = r.n; } catch { /* not built yet */ }
-  }
-}
-
-// ---- the steps ----------------------------------------------------------------------------------
-const STEPS = [
+const CLIENT_MAP = `c AS (SELECT md5(ni_number) AS hk_client, 'C' || substr(platform_ref, 5) AS client_id FROM src_platform)`;
+const A_STEPS = [
   { key: "src", lit: ["src"], title: "Three businesses, one client", sub: "Step 1 · Land the sources",
     text: "Each system has its own key: PLT-, QFP- and CHV- references. The only thing they share is the client's NI number, and the CRM stores it typed by hand, in lower case with a space.",
     sql: SOURCES, persona: "pipeline",
@@ -188,85 +157,28 @@ ORDER BY s.load_ts`, query: true },
       return `<p>${fmt(c.clients)} clients in <code>dim_client_360</code>. As of 1 October vs 2 October, <b>${fmt(c.changed)}</b> have a different risk profile, and both answers stay reproducible.</p>${table(r)}`; } },
 ];
 
-async function runStep(i) {
-  const s = STEPS[i], card = $(`#st-${i}`), out = $(".dv-out", card), btn = $("button", card);
-  btn.disabled = true; out.innerHTML = '<p class="muted">Running…</p>';
-  model(new Set(s.lit), FLOWS[s.key]);
-  try {
-    if (s.parallel) {
-      out.innerHTML = `<div class="dv-par">${["sat_client_platform", "sat_client_advice", "sat_client_cheviot"].map((n) => `<div><small>${n}</small><i><em></em></i></div>`).join("")}</div>`;
-      const ems = out.querySelectorAll("em"); ems.forEach((e, k) => { e.style.transition = `width ${0.9 + k * 0.25}s ease`; requestAnimationFrame(() => e.style.width = "100%"); });
-      await sleep(1300);
-    }
-    if (s.query) out.innerHTML = table(await run(s.sql));
-    else {
-      if (s.persona) await lake.as(s.persona, (l) => l.runSQL(s.sql)); else await run(s.sql);
-      out.innerHTML = (s.parallel ? out.innerHTML : "") + await s.after();
-    }
-    await refreshCounts();
-    const BUILT = { src: ["src1", "src2", "src3"], hub: ["hub"], link: ["lnka", "lnkp"], sat: ["satp", "sata", "satc"], mart: ["mart"] };
-    (BUILT[s.key] || []).forEach((k) => built.add(k));
-    if (s.key === "mart") { const [m] = await rows(`SELECT count(*) AS n FROM (${PIT("2026-10-02 23:59").replace(/^--[^\n]*\n/, "")})`); counts.mart = m.n; }
-    model(new Set(), []);
-    card.classList.add("done"); btn.textContent = "Done ✓";
-    $("#prog").innerHTML = STEPS.map((_, k) => `<i class="${$(`#st-${k}`).classList.contains("done") ? "done" : ""}"></i>`).join("");
-    if (i + 1 < STEPS.length) { $(`#st-${i + 1}`).hidden = false; } else finish();
-  } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; btn.disabled = false; }
-}
-
-function finish() {
-  usesReady = true; renderUses();
-  const el = document.createElement("div");
-  el.className = "card"; el.innerHTML = `<span class="step">The judgement call</span><h2>Would you use a vault for every domain?</h2><div id="dc"></div>`;
-  $("#dcwrap").replaceChildren(el);
-  choose($("#dc"), [
-    { t: "Yes: everything goes through the vault", gain: "One pattern everywhere.", cost: "Three extra tables for a single-source domain like HR, with nothing to integrate. Ceremony slows the team down." },
-    { t: "No: Kimball straight from the sources, everywhere", gain: "Fewer tables, faster to build.", cost: "Integrating three businesses inside dimension builds, and losing what each system said and when." },
-    { t: "Where several sources describe the same thing, or history must be auditable: vault in silver. Everywhere else: straight to Kimball", best: true,
-      why: "Client, adviser and portfolio are described by three Quilter businesses and regulators can ask what we knew and when, so the vault earns its tables there. HR or marketing spend has one source, so it goes straight to a star. Either way gold looks the same to its users.",
-      gain: "Integration and audit where they matter; simplicity elsewhere.", cost: "Two patterns to teach the team, so the decision rule is written down." },
-  ]);
-}
-
-// ---- what the vault makes possible: three Quilter use cases ------------------------------------
-const CLIENT_MAP = `c AS (SELECT md5(ni_number) AS hk_client, 'C' || substr(platform_ref, 5) AS client_id FROM src_platform)`;
-const USES = [
-  { key: "firms", title: "Adviser health: spot flows slowing before they leave", who: "Platform distribution · relationship managers · Finance",
-    q: "Which advisers' clients are sending less money in this quarter than last?",
-    lifepal: "Lifepal sat between insurers and customers, as Quilter sits between advisers and clients. Partner reporting on one agreed “bind” definition, with each insurer scoped to its own data, cut ad-hoc requests by 60%.",
-    note: "The vault's link_client_adviser joins the adviser CRM to platform flows through the shared client hub. Without it, the two systems have no common key.",
-    persona: "engineer", sql: `WITH ${CLIENT_MAP},
-f AS (SELECT a.client_id,
-             sum(amount_gbp) FILTER (WHERE trade_date >= DATE '2026-07-01') AS q3,
-             sum(amount_gbp) FILTER (WHERE trade_date >= DATE '2026-04-01' AND trade_date < DATE '2026-07-01') AS q2
-      FROM nexus.gold.fct_platform_transaction t JOIN nexus.silver.account a USING (account_id)
-      WHERE transaction_type IN ('contribution', 'withdrawal', 'fee') GROUP BY ALL)
-SELECT l.adviser, count(*) AS clients, round(sum(f.q2), 0) AS net_flows_q2, round(sum(f.q3), 0) AS net_flows_q3,
-       round(100 * (sum(f.q3) - sum(f.q2)) / abs(sum(f.q2)), 1) AS change_pct
-FROM link_client_adviser l JOIN c USING (hk_client) JOIN f USING (client_id)
-GROUP BY ALL HAVING count(*) >= 10
-ORDER BY change_pct LIMIT 8`,
-    say: (r) => r.length ? `Early warning: <b>${esc(r[0].adviser)}</b>'s clients went from <b>${gbp(r[0].net_flows_q2)}</b> of net flows last quarter to <b>${gbp(r[0].net_flows_q3)}</b> this quarter. That's the conversation for the relationship manager this week.` : "" },
-  { key: "duty", title: "Transfers out and Consumer Duty: fair journeys across the group", who: "Head of Consumer Duty · platform operations",
-    q: "Do clients known to more than one Quilter business, or in vulnerable circumstances, wait longer to transfer out?",
-    lifepal: "Insurer turnaround (application to decision) was the same kind of measure. Feeds arrived up to 72 hours late; CDC with idempotent MERGE took reporting from 24 hours to under 5 minutes.",
-    note: "Runs as the pipeline service principal, which can read the vulnerability flag, and returns aggregates only, dropping any group under 10 journeys. The vault supplies how many businesses know each client.",
-    persona: "pipeline", sql: `WITH ${CLIENT_MAP},
-b AS (SELECT hk_client, 1 + (hk_client IN (SELECT hk_client FROM link_client_adviser))::INT
-                          + (hk_client IN (SELECT hk_client FROM link_client_portfolio))::INT AS businesses FROM hub_client)
-SELECT b.businesses, CASE WHEN d.vulnerable THEN 'vulnerable' ELSE 'not vulnerable' END AS client_group,
-       count(*) AS transfers_out,
-       median(date_diff('day', CAST(j.created_on AS DATE), CAST(j.completed_on AS DATE))) AS median_days
-FROM nexus.silver.service_journey j
-JOIN nexus.silver.dim_client d USING (client_id)
-JOIN c USING (client_id) JOIN b USING (hk_client)
-WHERE j.journey_type = 'transfer_out' AND j.completed_on IS NOT NULL
-GROUP BY ALL HAVING count(*) >= 10
-ORDER BY businesses, client_group`,
-    say: (r) => { const g = (n, v) => r.find((x) => x.businesses === n && (x.client_group === "vulnerable") === v);
-      const pairs = [1, 2, 3].map((n) => [n, g(n, true), g(n, false)]).filter(([, v, o]) => v && o);
-      return pairs.length ? `Like for like, vulnerable clients wait longer: ${pairs.map(([n, v, o]) => `<b>${v.median_days} vs ${o.median_days} days</b> for clients known to ${n} business${n > 1 ? "es" : ""}`).join(", ")}. The Duty owner hears it first, with the evidence.` : ""; } },
-  { key: "ai", title: "A governed AI assistant for advisers", who: "Quilter Financial Planning advisers · Compliance",
+const A = {
+  key: "a", button: "A · Client 360", title: "Three businesses, one client",
+  intro: "Quilter's platform, its advice business and Quilter Cheviot each describe the same client with their own keys. The vault integrates them on the NI number, keeps every source's view with its history, and feeds one client dimension.",
+  N: {
+    src1: [75, 28, "FNZ platform", "PLT- refs · accounts", "src", "src_platform"], src2: [75, 123, "QFP adviser CRM", "QFP- ids · risk profile", "src", "src_advice"],
+    src3: [75, 218, "Quilter Cheviot", "CHV- refs · mandates", "src", "src_cheviot"],
+    satp: [230, 50, "sat_client_platform", "entity · channel · accounts", "sat", "sat_client_platform"], sata: [430, 50, "sat_client_advice", "risk profile · adviser", "sat", "sat_client_advice"],
+    satc: [630, 50, "sat_client_cheviot", "mandate · portfolio manager", "sat", "sat_client_cheviot"],
+    hub: [430, 125, "hub_client", "business key: NI number", "hub", "hub_client"],
+    lnka: [230, 205, "link_client_adviser", "client ↔ adviser", "link", "link_client_adviser"], lnkp: [630, 205, "link_client_portfolio", "client ↔ Cheviot portfolio", "link", "link_client_portfolio"],
+    mart: [790, 125, "dim_client_360", "Kimball, in gold", "mart", null],
+  },
+  EDGES: [["src1", "hub"], ["src2", "hub"], ["src3", "hub"], ["src1", "satp"], ["src2", "sata"], ["src3", "satc"], ["src2", "lnka"], ["src3", "lnkp"],
+    ["satp", "hub"], ["sata", "hub"], ["satc", "hub"], ["hub", "lnka"], ["hub", "lnkp"], ["hub", "mart"], ["sata", "mart"], ["satc", "mart"]],
+  FLOWS: { src: [], hub: ["src1>hub", "src2>hub", "src3>hub"], link: ["src2>lnka", "src3>lnkp", "hub>lnka", "hub>lnkp"], sat: ["src1>satp", "src2>sata", "src3>satc"],
+    day2: ["src2>sata"], audit: ["sata>hub"], mart: ["hub>mart", "sata>mart", "satc>mart", "satp>hub"] },
+  BUILT: { src: ["src1", "src2", "src3"], hub: ["hub"], link: ["lnka", "lnkp"], sat: ["satp", "sata", "satc"], mart: ["mart"] },
+  PAR: ["sat_client_platform", "sat_client_advice", "sat_client_cheviot"],
+  steps: A_STEPS,
+  martCount: async () => (await rows(`SELECT count(*) AS n FROM (${stripHead(PIT("2026-10-02 23:59"))})`))[0].n, martUnit: "clients",
+  files: { "01_sources.sql": SOURCES, "02_hub_client.sql": HUB, "03_links.sql": LINKS, "04_satellites.sql": SATS, "05_next_day_change.sql": DAY2, "06_pit_dim_client_360.sql": PIT("2026-10-02 23:59") },
+  use: { key: "ai", title: "A governed AI assistant for advisers", who: "Quilter Financial Planning advisers · Compliance",
     q: "“How is my book doing?”, asked by one adviser, answered only from their own clients.",
     lifepal: "Definitions in the semantic layer first cut ad-hoc requests by 60%, and AI agents got read-only, role-scoped access to governed metadata, never a service account.",
     note: "The assistant would call this as a governed function with the adviser's own identity, so it can only ever see that adviser's clients. Here it runs for Adviser 26.",
@@ -282,64 +194,397 @@ FROM mine JOIN risk r USING (hk_client) JOIN c USING (hk_client) LEFT JOIN flows
 GROUP BY ALL ORDER BY clients DESC`,
     say: (r) => { const n = r.reduce((a, x) => a + x.clients, 0), f = r.reduce((a, x) => a + x.net_flows_q3, 0);
       return `“Your book: <b>${n} clients</b>, net flows of <b>${gbp(f)}</b> this quarter; most are ${esc(r[0]?.risk_profile || "")}.” Source: the vault and the certified fact, Delta-versioned, owner named. No advice, and no other adviser's clients.`; } },
-];
-let usesReady = false;
-const gbp = (v) => `${v < 0 ? "−" : ""}£${fmt(Math.abs(v), 0)}`;
-function renderUses() {
-  $("#uses").innerHTML = `<div class="card dv-uses"><span class="step">What the vault makes possible</span><h2>Three Quilter use cases, each one query away</h2>
-    <p>${usesReady ? "The vault is built. Run any of these on the live lakehouse." : "Build the vault above first (press <b>Build it</b>), then run these on the live lakehouse."}</p>
-    <div class="use-grid">${USES.map((u, i) => `<div class="use ${usesReady ? "" : "locked"}" id="use-${i}"><span class="use-n">${i + 1}</span><h3>${esc(u.title)}</h3>
+};
+
+// =============================================================================================
+// B · Adviser firms and flows
+// =============================================================================================
+const B_SOURCES = `-- three feeds: the adviser CRM, the firm register, and platform flows from the certified fact
+CREATE OR REPLACE TABLE b_src_crm AS                       -- which adviser looks after which platform client
+SELECT 'PLT-' || substr(client_id, 2) AS client_ref,
+       'ADV-' || lpad(CAST(hash(client_id) % 40 + 1 AS VARCHAR), 3, '0') AS adviser_id,
+       'Adviser ' || CAST(hash(client_id) % 40 + 1 AS VARCHAR) AS adviser_name
+FROM nexus.silver.dim_client WHERE channel = 'Quilter adviser';
+CREATE OR REPLACE TABLE b_src_register AS                  -- the firm register (fictional firms)
+SELECT * FROM (VALUES
+  ('FRM-01', 'Abbey Lane Wealth', 'Gold', 'London'),   ('FRM-02', 'Northgate Planning', 'Silver', 'Leeds'),
+  ('FRM-03', 'Harbour and Vale', 'Silver', 'Bristol'), ('FRM-04', 'Kestrel Financial', 'Bronze', 'Glasgow'),
+  ('FRM-05', 'Millbrook Partners', 'Gold', 'Southampton'), ('FRM-06', 'Ashdown Advice', 'Bronze', 'Brighton'),
+  ('FRM-07', 'Fenwick Private', 'Silver', 'Edinburgh'), ('FRM-08', 'Larkfield Wealth', 'Bronze', 'Manchester')
+) t(firm_ref, firm_name, tier, region);
+CREATE OR REPLACE TABLE b_src_firm_adviser AS              -- which firm each adviser belongs to
+SELECT adviser_id, 'FRM-0' || CAST(CAST(substr(adviser_id, 5) AS INT) % 8 + 1 AS VARCHAR) AS firm_ref
+FROM (SELECT DISTINCT adviser_id FROM b_src_crm);
+CREATE OR REPLACE TABLE b_src_flows AS                     -- monthly net flows per client, from the certified fact
+SELECT 'PLT-' || substr(a.client_id, 2) AS client_ref, date_trunc('month', t.trade_date) AS month, round(sum(t.amount_gbp), 2) AS net_flows_gbp
+FROM nexus.gold.fct_platform_transaction t JOIN nexus.silver.account a USING (account_id)
+WHERE t.transaction_type IN ('contribution', 'withdrawal', 'fee') GROUP BY ALL`;
+const B_HUBS = `-- three hubs, one per business key
+CREATE OR REPLACE TABLE b_hub_firm AS
+SELECT md5(firm_ref) AS hk_firm, firm_ref, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'firm_register' AS record_source FROM b_src_register;
+CREATE OR REPLACE TABLE b_hub_adviser AS
+SELECT DISTINCT md5(adviser_id) AS hk_adviser, adviser_id, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'qfp_crm' AS record_source FROM b_src_crm;
+CREATE OR REPLACE TABLE b_hub_client AS
+SELECT md5(client_ref) AS hk_client, client_ref, min(load_ts) AS load_ts, arg_min(src, load_ts) AS record_source FROM (
+  SELECT client_ref, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'qfp_crm' AS src FROM b_src_crm
+  UNION ALL SELECT DISTINCT client_ref, TIMESTAMP '2026-10-01 05:31', 'fnz_platform' FROM b_src_flows) GROUP BY client_ref`;
+const B_LINKS = `-- firm to adviser, adviser to client: each relationship its own link
+CREATE OR REPLACE TABLE b_link_firm_adviser AS
+SELECT md5(firm_ref || adviser_id) AS hk_link, md5(firm_ref) AS hk_firm, md5(adviser_id) AS hk_adviser,
+       TIMESTAMP '2026-10-01 05:30' AS load_ts, 'qfp_crm' AS record_source FROM b_src_firm_adviser;
+CREATE OR REPLACE TABLE b_link_adviser_client AS
+SELECT md5(adviser_id || client_ref) AS hk_link, md5(adviser_id) AS hk_adviser, md5(client_ref) AS hk_client,
+       TIMESTAMP '2026-10-01 05:30' AS load_ts, 'qfp_crm' AS record_source FROM b_src_crm`;
+const B_SATS = `-- descriptions with history: firm details, and when each firm-adviser link is in effect
+CREATE OR REPLACE TABLE b_sat_firm AS
+SELECT md5(firm_ref) AS hk_firm, TIMESTAMP '2026-10-01 05:30' AS load_ts,
+       md5(concat_ws('|', firm_name, tier, region)) AS hashdiff, firm_name, tier, region, 'firm_register' AS record_source
+FROM b_src_register;
+CREATE OR REPLACE TABLE b_eff_firm_adviser AS             -- effectivity satellite on the link
+SELECT hk_link, TIMESTAMP '2026-10-01 05:30' AS load_ts, true AS is_current FROM b_link_firm_adviser;
+CREATE OR REPLACE TABLE b_sat_client_flows AS             -- multi-active: one row per client per month
+SELECT md5(client_ref) AS hk_client, month, net_flows_gbp, TIMESTAMP '2026-10-01 05:31' AS load_ts, 'fnz_platform' AS record_source
+FROM b_src_flows`;
+const B_DAY2 = `-- next morning: Harbour and Vale moves to Gold, and ADV-007 moves from Larkfield Wealth to Millbrook Partners
+INSERT INTO b_sat_firm
+SELECT md5('FRM-03'), TIMESTAMP '2026-10-02 05:30', md5(concat_ws('|', 'Harbour and Vale', 'Gold', 'Bristol')),
+       'Harbour and Vale', 'Gold', 'Bristol', 'firm_register';
+INSERT INTO b_link_firm_adviser
+SELECT md5('FRM-05' || 'ADV-007'), md5('FRM-05'), md5('ADV-007'), TIMESTAMP '2026-10-02 05:30', 'qfp_crm';
+INSERT INTO b_eff_firm_adviser VALUES
+  (md5('FRM-08' || 'ADV-007'), TIMESTAMP '2026-10-02 05:30', false),   -- the old link ends
+  (md5('FRM-05' || 'ADV-007'), TIMESTAMP '2026-10-02 05:30', true)     -- the new link starts`;
+const B_FIRM_NOW = `cur AS (SELECT l.hk_firm, l.hk_adviser FROM b_link_firm_adviser l
+             JOIN (SELECT hk_link, is_current FROM b_eff_firm_adviser
+                   QUALIFY row_number() OVER (PARTITION BY hk_link ORDER BY load_ts DESC) = 1) e USING (hk_link)
+             WHERE e.is_current),
+     tier AS (SELECT hk_firm, firm_name, tier FROM b_sat_firm
+              QUALIFY row_number() OVER (PARTITION BY hk_firm ORDER BY load_ts DESC) = 1)`;
+const B_MART = `-- gold: net flows per firm and quarter, through today's firm for each adviser and the firm's current tier
+WITH ${B_FIRM_NOW}
+SELECT t.firm_name, t.tier, count(DISTINCT cur.hk_adviser) AS advisers,
+       round(sum(f.net_flows_gbp) FILTER (WHERE f.month >= DATE '2026-04-01' AND f.month < DATE '2026-07-01'), 0) AS net_flows_q2,
+       round(sum(f.net_flows_gbp) FILTER (WHERE f.month >= DATE '2026-07-01'), 0) AS net_flows_q3
+FROM cur JOIN tier t USING (hk_firm)
+JOIN b_link_adviser_client ac USING (hk_adviser)
+JOIN b_sat_client_flows f ON f.hk_client = ac.hk_client
+GROUP BY ALL ORDER BY net_flows_q3 DESC`;
+const B = {
+  key: "b", button: "B · Adviser firms", title: "Firms, advisers and their clients' money",
+  intro: "Flows reach the platform through adviser firms. The vault links firms to advisers and advisers to clients, keeps a firm's tier history, and records when an adviser moves firm, so flows can be read by firm as they really were.",
+  N: {
+    src1: [75, 40, "QFP adviser CRM", "adviser ↔ client", "src", "b_src_crm"], src2: [75, 125, "Firm register", "tier · region", "src", "b_src_register"],
+    src3: [75, 210, "FNZ platform", "monthly net flows", "src", "b_src_flows"],
+    hubf: [250, 125, "hub_firm", "key: FRM- ref", "hub", "b_hub_firm"], satf: [250, 40, "sat_firm", "name · tier · region", "sat", "b_sat_firm"],
+    lfa: [430, 125, "link_firm_adviser", "firm ↔ adviser", "link", "b_link_firm_adviser"], eff: [430, 40, "eff_firm_adviser", "when the link is in effect", "sat", "b_eff_firm_adviser"],
+    huba: [610, 125, "hub_adviser", "key: ADV- id", "hub", "b_hub_adviser"], lac: [610, 210, "link_adviser_client", "adviser ↔ client", "link", "b_link_adviser_client"],
+    hubc: [430, 210, "hub_client", "key: PLT- ref", "hub", "b_hub_client"], satcf: [250, 210, "sat_client_flows", "net flows by month", "sat", "b_sat_client_flows"],
+    mart: [790, 125, "fct_firm_flows", "Kimball, in gold", "mart", null],
+  },
+  EDGES: [["src2", "hubf"], ["src1", "huba"], ["src1", "hubc"], ["src3", "hubc"], ["hubf", "lfa"], ["lfa", "huba"], ["huba", "lac"], ["lac", "hubc"],
+    ["src2", "satf"], ["satf", "hubf"], ["eff", "lfa"], ["src3", "satcf"], ["satcf", "hubc"], ["huba", "mart"]],
+  FLOWS: { src: [], hub: ["src2>hubf", "src1>huba", "src1>hubc", "src3>hubc"], link: ["hubf>lfa", "lfa>huba", "huba>lac", "lac>hubc"],
+    sat: ["src2>satf", "eff>lfa", "src3>satcf"], day2: ["src2>satf", "eff>lfa"], audit: ["eff>lfa", "lfa>huba"], mart: ["satcf>hubc", "lac>hubc", "huba>mart"] },
+  BUILT: { src: ["src1", "src2", "src3"], hub: ["hubf", "huba", "hubc"], link: ["lfa", "lac"], sat: ["satf", "eff", "satcf"], mart: ["mart"] },
+  PAR: ["sat_firm", "eff_firm_adviser", "sat_client_flows"],
+  steps: [
+    { key: "src", lit: ["src"], sub: "Step 1 · Land the sources", title: "Three feeds about firms, advisers and money",
+      text: "The adviser CRM says who looks after whom. The firm register says which firm an adviser works for, and its tier. The platform's certified fact gives each client's monthly net flows.",
+      sql: B_SOURCES,
+      after: async () => table(await run("SELECT 'adviser CRM' AS source, count(*) AS rows FROM b_src_crm UNION ALL SELECT 'firm register', count(*) FROM b_src_register UNION ALL SELECT 'firm ↔ adviser', count(*) FROM b_src_firm_adviser UNION ALL SELECT 'platform flows (client × month)', count(*) FROM b_src_flows")) },
+    { key: "hub", lit: ["hub"], sub: "Step 2 · Build the hubs", title: "One hub per business key",
+      text: "Firm, adviser and client each get a hub: just the key, hashed, with when and where it was first seen.",
+      sql: B_HUBS,
+      after: async () => table(await run("SELECT 'hub_firm' AS hub, count(*) AS keys FROM b_hub_firm UNION ALL SELECT 'hub_adviser', count(*) FROM b_hub_adviser UNION ALL SELECT 'hub_client', count(*) FROM b_hub_client")) },
+    { key: "link", lit: ["link"], sub: "Step 3 · Build the links", title: "Who works where, who looks after whom",
+      text: "Two links carry the relationships. When an adviser moves firm, that's a new link row; the old one stays as history.",
+      sql: B_LINKS,
+      after: async () => table(await run("SELECT 'link_firm_adviser' AS link, count(*) AS rows FROM b_link_firm_adviser UNION ALL SELECT 'link_adviser_client', count(*) FROM b_link_adviser_client")) },
+    { key: "sat", lit: ["sat"], sub: "Step 4 · Build the satellites", title: "Tier history, link effectivity, monthly flows",
+      text: "The firm's details carry a hashdiff. An effectivity satellite on the firm–adviser link says when each relationship is in force. Flows are a multi-active satellite: one row per client per month.",
+      sql: B_SATS, parallel: true,
+      after: async () => table(await run("SELECT 'sat_firm' AS satellite, count(*) AS rows FROM b_sat_firm UNION ALL SELECT 'eff_firm_adviser', count(*) FROM b_eff_firm_adviser UNION ALL SELECT 'sat_client_flows', count(*) FROM b_sat_client_flows")) },
+    { key: "day2", lit: ["src2", "satf", "lfa", "eff"], sub: "Step 5 · Load a change, keep the history", title: "A firm moves up a tier; an adviser moves firm",
+      text: "Harbour and Vale is upgraded to Gold, and ADV-007 moves from Larkfield Wealth to Millbrook Partners. Two inserts and an effectivity change. Nothing is updated in place.",
+      sql: B_DAY2,
+      after: async () => { const [d] = await rows("SELECT (SELECT count(*) FROM b_sat_firm) AS sat_rows, (SELECT count(*) FROM b_link_firm_adviser) AS links, (SELECT count(*) FROM b_eff_firm_adviser) AS eff_rows");
+        return `<div class="kv"><div><small>sat_firm rows</small><b>${fmt(d.sat_rows)}</b></div><div><small>firm ↔ adviser links</small><b>${fmt(d.links)}</b></div><div><small>effectivity rows</small><b>${fmt(d.eff_rows)}</b></div><div><small>Updated or deleted</small><b>0</b></div></div>`; } },
+    { key: "audit", lit: ["lfa", "eff", "huba"], sub: "Step 6 · Answer from history", title: "Which firm was ADV-007 with, and when?",
+      text: "A relationship manager asks why ADV-007's flows moved between firms. The link and its effectivity satellite answer with dates.",
+      sql: `SELECT a.adviser_id, s.firm_name, strftime(e.load_ts, '%Y-%m-%d %H:%M') AS from_load, e.is_current
+FROM b_eff_firm_adviser e
+JOIN b_link_firm_adviser l USING (hk_link)
+JOIN b_hub_adviser a USING (hk_adviser)
+JOIN (SELECT hk_firm, firm_name FROM b_sat_firm QUALIFY row_number() OVER (PARTITION BY hk_firm ORDER BY load_ts DESC) = 1) s USING (hk_firm)
+WHERE a.adviser_id = 'ADV-007'
+ORDER BY e.load_ts, e.is_current`, query: true },
+    { key: "mart", lit: ["mart"], sub: "Step 7 · Publish a Kimball fact", title: "Net flows by firm, for everyone else",
+      text: "Gold gets a simple fact: net flows per firm per quarter, through each adviser's current firm and the firm's current tier.",
+      sql: B_MART,
+      after: async () => table(await run(stripHead(B_MART))) },
+  ],
+  martCount: async () => (await rows(`SELECT count(*) AS n FROM (${stripHead(B_MART)})`))[0].n, martUnit: "firms",
+  files: { "01_sources.sql": B_SOURCES, "02_hubs.sql": B_HUBS, "03_links.sql": B_LINKS, "04_satellites.sql": B_SATS, "05_next_day_change.sql": B_DAY2, "06_fct_firm_flows.sql": B_MART },
+  use: { title: "Adviser health: spot flows slowing before they leave", who: "Platform distribution · relationship managers · Finance",
+    q: "Which firms' clients are sending less money this quarter than last?",
+    lifepal: "Lifepal sat between insurers and customers, as Quilter sits between adviser firms and clients. Partner reporting on one agreed “bind” definition, with each insurer scoped to its own data, cut ad-hoc requests by 60%.",
+    note: "The firm view only exists because the vault links firm → adviser → client, and remembers when an adviser moved.",
+    persona: "engineer", sql: `WITH m AS (${stripHead(B_MART)})
+SELECT firm_name, tier, advisers, net_flows_q2, net_flows_q3,
+       round(100 * (net_flows_q3 - net_flows_q2) / abs(net_flows_q2), 1) AS change_pct
+FROM m ORDER BY change_pct`,
+    say: (r) => r.length ? `Early warning: <b>${esc(r[0].firm_name)}</b> (${esc(r[0].tier)}) went from <b>${gbp(r[0].net_flows_q2)}</b> to <b>${gbp(r[0].net_flows_q3)}</b> quarter on quarter. That's this week's conversation for its relationship manager.` : "" },
+};
+
+// =============================================================================================
+// C · Transfers and Consumer Duty
+// =============================================================================================
+const C_SOURCES = `-- runs as the pipeline service principal: journey events from the platform, and the vulnerability flag
+CREATE OR REPLACE TABLE c_src_events AS                    -- status events, as the platform emits them
+SELECT journey_id, client_id, journey_type, 'requested' AS status, CAST(created_on AS DATE) AS event_date FROM nexus.silver.service_journey
+UNION ALL
+SELECT journey_id, client_id, journey_type, 'in_progress', CAST(created_on AS DATE) + 1 FROM nexus.silver.service_journey
+WHERE completed_on IS NOT NULL AND CAST(completed_on AS DATE) > CAST(created_on AS DATE) + 1
+UNION ALL
+SELECT journey_id, client_id, journey_type, 'completed', CAST(completed_on AS DATE) FROM nexus.silver.service_journey
+WHERE completed_on IS NOT NULL;
+CREATE OR REPLACE TABLE c_src_clients AS                   -- special category in practice: never leaves the pipeline
+SELECT client_id, vulnerable FROM nexus.silver.dim_client`;
+const C_HUBS = `-- a hub for the journey (the request) and one for the client
+CREATE OR REPLACE TABLE c_hub_journey AS
+SELECT DISTINCT md5(journey_id) AS hk_journey, journey_id, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'fnz_platform' AS record_source FROM c_src_events;
+CREATE OR REPLACE TABLE c_hub_client AS
+SELECT DISTINCT md5(client_id) AS hk_client, client_id, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'fnz_platform' AS record_source FROM c_src_events`;
+const C_LINKS = `-- which client made which request
+CREATE OR REPLACE TABLE c_link_client_journey AS
+SELECT DISTINCT md5(client_id || journey_id) AS hk_link, md5(client_id) AS hk_client, md5(journey_id) AS hk_journey,
+       TIMESTAMP '2026-10-01 05:30' AS load_ts, 'fnz_platform' AS record_source FROM c_src_events`;
+const C_SATS = `-- status history is insert-only, and vulnerability gets its own satellite with its own grants
+CREATE OR REPLACE TABLE c_sat_journey_status AS
+SELECT md5(journey_id) AS hk_journey, event_date, status, journey_type, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'fnz_platform' AS record_source
+FROM c_src_events;
+CREATE OR REPLACE TABLE c_sat_client_vulnerability AS     -- GRANT SELECT only to the pipeline and the DPO
+SELECT md5(client_id) AS hk_client, vulnerable, TIMESTAMP '2026-10-01 05:30' AS load_ts, 'qfp_crm' AS record_source
+FROM c_src_clients`;
+const C_DAY2 = `-- next morning: the platform corrects 25 transfer-out completions, which actually finished 3 days later
+INSERT INTO c_sat_journey_status
+SELECT hk_journey, event_date + 3, 'completed', journey_type, TIMESTAMP '2026-10-02 05:30', 'fnz_correction'
+FROM c_sat_journey_status
+WHERE status = 'completed' AND journey_type = 'transfer_out'
+QUALIFY row_number() OVER (ORDER BY hash(hk_journey)) <= 25`;
+const C_LATEST = (known) => `latest AS (SELECT * FROM c_sat_journey_status WHERE load_ts <= TIMESTAMP '${known}'
+                QUALIFY row_number() OVER (PARTITION BY hk_journey, status ORDER BY load_ts DESC) = 1)`;
+const C_MART = `-- gold, run as the pipeline: transfer-out outcomes by vulnerability, aggregates only, groups under 10 dropped
+WITH ${C_LATEST("2026-10-02 23:59")},
+j AS (SELECT r.hk_journey, r.journey_type, date_diff('day', r.event_date, c.event_date) AS days
+      FROM latest r JOIN latest c ON c.hk_journey = r.hk_journey AND c.status = 'completed'
+      WHERE r.status = 'requested')
+SELECT j.journey_type, CASE WHEN v.vulnerable THEN 'vulnerable' ELSE 'not vulnerable' END AS client_group,
+       count(*) AS journeys, median(j.days) AS median_days, quantile_disc(j.days, 0.9) AS p90_days
+FROM j JOIN c_link_client_journey l USING (hk_journey) JOIN c_sat_client_vulnerability v USING (hk_client)
+GROUP BY ALL HAVING count(*) >= 10
+ORDER BY journey_type, client_group`;
+const C = {
+  key: "c", button: "C · Transfers and Consumer Duty", title: "Every request, every status, kept",
+  intro: "Consumer Duty asks whether clients can act as easily as they join, and whether vulnerable clients do as well as others. The vault keeps every status a request passes through, takes late corrections without losing what was first reported, and keeps vulnerability in its own locked-down satellite.",
+  N: {
+    src1: [75, 60, "FNZ journey events", "requested · in progress · done", "src", "c_src_events"], src2: [75, 190, "Client records", "vulnerability flag 🔒", "src", "c_src_clients"],
+    hubj: [290, 60, "hub_journey", "key: journey id", "hub", "c_hub_journey"], hubc: [290, 190, "hub_client", "key: client id", "hub", "c_hub_client"],
+    lnk: [470, 125, "link_client_journey", "client ↔ request", "link", "c_link_client_journey"],
+    satj: [600, 40, "sat_journey_status", "status history, insert-only", "sat", "c_sat_journey_status"],
+    satv: [600, 210, "sat_client_vulnerability", "restricted: pipeline + DPO", "sat", "c_sat_client_vulnerability"],
+    mart: [790, 125, "journey_outcomes", "aggregate, in gold", "mart", null],
+  },
+  EDGES: [["src1", "hubj"], ["src1", "hubc"], ["src2", "hubc"], ["hubj", "lnk"], ["hubc", "lnk"], ["src1", "satj"], ["satj", "hubj"], ["src2", "satv"], ["satv", "hubc"], ["lnk", "mart"], ["satj", "mart"], ["satv", "mart"]],
+  FLOWS: { src: [], hub: ["src1>hubj", "src1>hubc", "src2>hubc"], link: ["hubj>lnk", "hubc>lnk"], sat: ["src1>satj", "src2>satv"],
+    day2: ["src1>satj"], audit: ["satj>hubj"], mart: ["lnk>mart", "satj>mart", "satv>mart"] },
+  BUILT: { src: ["src1", "src2"], hub: ["hubj", "hubc"], link: ["lnk"], sat: ["satj", "satv"], mart: ["mart"] },
+  PAR: ["sat_journey_status", "sat_client_vulnerability"],
+  steps: [
+    { key: "src", lit: ["src"], sub: "Step 1 · Land the sources", title: "Status events and a sensitive flag",
+      text: "The platform emits an event each time a request changes status. The vulnerability flag comes from client records and only the pipeline may read it.",
+      sql: C_SOURCES, persona: "pipeline",
+      after: async () => table(await run("SELECT status, count(*) AS events FROM c_src_events GROUP BY ALL ORDER BY events DESC")) + '<p class="muted">The flag itself is never shown: only the pipeline reads c_src_clients.</p>' },
+    { key: "hub", lit: ["hubj", "hubc"], sub: "Step 2 · Build the hubs", title: "The request and the client",
+      text: "A transfer request is a business object in its own right, so it gets a hub, as does the client who made it.",
+      sql: C_HUBS,
+      after: async () => table(await run("SELECT 'hub_journey' AS hub, count(*) AS keys FROM c_hub_journey UNION ALL SELECT 'hub_client', count(*) FROM c_hub_client")) },
+    { key: "link", lit: ["lnk"], sub: "Step 3 · Build the link", title: "Who asked for what",
+      text: "One link joins each request to its client.",
+      sql: C_LINKS,
+      after: async () => table(await run("SELECT 'link_client_journey' AS link, count(*) AS rows FROM c_link_client_journey")) },
+    { key: "sat", lit: ["satj", "satv"], sub: "Step 4 · Build the satellites", title: "Status history, and a locked-down satellite",
+      text: "Every status event is a new row. Vulnerability sits in its own satellite so it can carry tighter grants than everything else: splitting satellites by sensitivity is one of the vault's quiet strengths.",
+      sql: C_SATS, parallel: true, persona: "pipeline",
+      after: async () => table(await run("SELECT 'sat_journey_status' AS satellite, count(*) AS rows FROM c_sat_journey_status UNION ALL SELECT 'sat_client_vulnerability', count(*) FROM c_sat_client_vulnerability")) },
+    { key: "day2", lit: ["src1", "satj"], sub: "Step 5 · Load a correction, keep the history", title: "The platform corrects 25 completions",
+      text: "25 transfers out actually completed three days later than first reported. The corrections are inserted next to the original events: what we first reported is still there.",
+      sql: C_DAY2,
+      after: async () => { const [d] = await rows("SELECT count(*) FILTER (WHERE record_source = 'fnz_correction') AS corrections, count(*) AS rows FROM c_sat_journey_status");
+        return `<div class="kv"><div><small>Corrections inserted</small><b>${fmt(d.corrections)}</b></div><div><small>Status rows now</small><b>${fmt(d.rows)}</b></div><div><small>Updated</small><b>0</b></div><div><small>Deleted</small><b>0</b></div></div>`; } },
+    { key: "audit", lit: ["satj", "hubj"], sub: "Step 6 · Answer from history", title: "What did we report, and what was true?",
+      text: "The Duty owner asks about the 25 corrected transfers: how long did we first say they took, and how long did they really take? Both answers come straight from the satellite.",
+      sql: `WITH fix AS (SELECT DISTINCT hk_journey FROM c_sat_journey_status WHERE record_source = 'fnz_correction'),
+${C_LATEST("2026-10-01 23:59").replace("latest AS", "v1 AS")},
+${C_LATEST("2026-10-02 23:59").replace("latest AS", "v2 AS")}
+SELECT 'as first reported (1 Oct)' AS view, count(*) AS corrected_transfers,
+       round(avg(date_diff('day', r.event_date, c.event_date)), 1) AS avg_days
+FROM v1 r JOIN v1 c USING (hk_journey) JOIN fix USING (hk_journey)
+WHERE r.status = 'requested' AND c.status = 'completed'
+UNION ALL
+SELECT 'after the correction (2 Oct)', count(*), round(avg(date_diff('day', r.event_date, c.event_date)), 1)
+FROM v2 r JOIN v2 c USING (hk_journey) JOIN fix USING (hk_journey)
+WHERE r.status = 'requested' AND c.status = 'completed'`, query: true },
+    { key: "mart", lit: ["mart"], sub: "Step 7 · Publish an aggregate", title: "Journey outcomes for the Duty owner",
+      text: "Gold gets aggregates only, built by the pipeline, with groups under 10 dropped, so nobody downstream can see who is vulnerable.",
+      sql: C_MART, persona: "pipeline",
+      after: async () => table(await lake.as("pipeline", (l) => l.runSQL(stripHead(C_MART)))) },
+  ],
+  martCount: async () => (await lake.as("pipeline", (l) => l.rows(`SELECT count(*) AS n FROM (${stripHead(C_MART)})`)))[0].n, martUnit: "outcome rows",
+  files: { "01_sources.sql": C_SOURCES, "02_hubs.sql": C_HUBS, "03_link.sql": C_LINKS, "04_satellites.sql": C_SATS, "05_late_correction.sql": C_DAY2, "06_journey_outcomes.sql": C_MART },
+  use: { title: "Transfers out and Consumer Duty: fair journeys", who: "Head of Consumer Duty · platform operations",
+    q: "Do vulnerable clients wait longer to transfer out, and by how much?",
+    lifepal: "Insurer turnaround (application to decision) was the same kind of measure. Feeds arrived up to 72 hours late; CDC with idempotent MERGE took reporting from 24 hours to under 5 minutes.",
+    note: "Runs as the pipeline and returns aggregates only. The analyst sees the gap, never the flag.",
+    persona: "pipeline", sql: stripHead(C_MART).replace("ORDER BY journey_type, client_group", "AND j.journey_type IN ('transfer_out', 'withdrawal')\nORDER BY journey_type, client_group").replace("GROUP BY ALL HAVING", "GROUP BY ALL HAVING"),
+    say: (r) => { const t = r.filter((x) => x.journey_type === "transfer_out"), v = t.find((x) => x.client_group === "vulnerable"), o = t.find((x) => x.client_group !== "vulnerable");
+      return v && o ? `Vulnerable clients take <b>${v.median_days} days</b> to transfer out against <b>${o.median_days}</b> for others (${(v.median_days / o.median_days).toFixed(1)}×). Above the 1.25× threshold, so the Duty owner hears it first, with this evidence.` : ""; } },
+};
+
+const VAULTS = { a: A, b: B, c: C };
+let V = A, counts = {}, built = new Set(), usesReady = false;
+
+// ---- the model diagram ------------------------------------------------------------------------
+const W2 = { src: 65, sat: 70, hub: 62, link: 70, mart: 60 };
+const edgePath = (a, b) => { const [x1, y1, , , k1] = V.N[a], [x2, y2, , , k2] = V.N[b];
+  const sx = x1 + (x2 > x1 ? W2[k1] : x2 < x1 ? -W2[k1] : 0), ex = x2 + (x2 > x1 ? -W2[k2] : x2 < x1 ? W2[k2] : 0);
+  const sy = x1 === x2 ? y1 + (y2 > y1 ? 23 : -23) : y1, ey = x1 === x2 ? y2 + (y2 > y1 ? -23 : 23) : y2, m = (sx + ex) / 2;
+  return `M${sx},${sy} C${m},${sy} ${m},${ey} ${ex},${ey}`; };
+function model(lit = new Set(), flows = []) {
+  const fl = new Set(flows);
+  const box = (id) => { const [x, y, label, sub, kind, tbl] = V.N[id], w = W2[kind] * 2;
+    const c = tbl && counts[tbl] != null ? `${fmt(counts[tbl])} rows` : kind === "mart" && counts.mart != null ? `${fmt(counts.mart)} ${V.martUnit}` : sub;
+    const state = lit.has(id) || lit.has(kind) ? "on" : built.has(id) ? "built" : kind === "src" ? "" : "todo";
+    return `<g class="dvn ${kind} ${state}"><rect x="${x - w / 2}" y="${y - 23}" width="${w}" height="46" rx="8"/><text x="${x}" y="${y - 3}" class="t1">${label}</text><text x="${x}" y="${y + 12}" class="t2">${c}</text></g>`; };
+  const edges = V.EDGES.map(([a, b]) => { const d = edgePath(a, b), on = fl.has(`${a}>${b}`);
+    return `<path d="${d}" class="dve ${on ? "on" : ""}"/>${on && !still ? [0, 0.45, 0.9].map((t) => `<circle r="3.6" class="dvdot"><animateMotion dur="1.35s" begin="-${t}s" repeatCount="indefinite" path="${d}"/></circle>`).join("") : ""}`; }).join("");
+  $("#model").innerHTML = `<svg viewBox="0 0 860 245" role="img" aria-label="Data Vault model: ${esc(V.title)}">${edges}${Object.keys(V.N).map(box).join("")}</svg>
+    <div class="dv-legend"><span class="hub">Hub: one row per business key</span><span class="link">Link: a relationship</span><span class="sat">Satellite: a description, with history</span><span class="mart">Mart: what people query</span></div>`;
+}
+async function refreshCounts() {
+  for (const t of Object.values(V.N).map((n) => n[5]).filter(Boolean)) {
+    try { const [r] = await rows(`SELECT count(*) AS n FROM ${t}`); counts[t] = r.n; } catch { /* not built yet */ }
+  }
+}
+
+// ---- steps --------------------------------------------------------------------------------------
+async function runStep(i) {
+  const s = V.steps[i], card = $(`#st-${i}`), out = $(".dv-out", card), btn = $("button", card);
+  btn.disabled = true; out.innerHTML = '<p class="muted">Running…</p>';
+  model(new Set(s.lit), V.FLOWS[s.key]);
+  try {
+    if (s.parallel) {
+      out.innerHTML = `<div class="dv-par">${V.PAR.map((n) => `<div><small>${n}</small><i><em></em></i></div>`).join("")}</div>`;
+      const ems = out.querySelectorAll("em"); ems.forEach((e, k) => { e.style.transition = `width ${0.9 + k * 0.25}s ease`; requestAnimationFrame(() => e.style.width = "100%"); });
+      await sleep(1300);
+    }
+    if (s.query) out.innerHTML = table(await run(s.sql));
+    else {
+      if (s.persona) await lake.as(s.persona, (l) => l.runSQL(s.sql)); else await run(s.sql);
+      out.innerHTML = (s.parallel ? out.innerHTML : "") + await s.after();
+    }
+    await refreshCounts();
+    (V.BUILT[s.key] || []).forEach((k) => built.add(k));
+    if (s.key === "mart") counts.mart = await V.martCount();
+    model(new Set(), []);
+    card.classList.add("done"); btn.textContent = "Done ✓";
+    $("#prog").innerHTML = V.steps.map((_, k) => `<i class="${$(`#st-${k}`).classList.contains("done") ? "done" : ""}"></i>`).join("");
+    if (i + 1 < V.steps.length) { $(`#st-${i + 1}`).hidden = false; } else finish();
+  } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; btn.disabled = false; }
+}
+
+function finish() {
+  usesReady = true; renderUse();
+  const el = document.createElement("div");
+  el.className = "card"; el.innerHTML = `<span class="step">The judgement call</span><h2>Would you use a vault for every domain?</h2><div id="dc"></div>`;
+  $("#dcwrap").replaceChildren(el);
+  choose($("#dc"), [
+    { t: "Yes: everything goes through the vault", gain: "One pattern everywhere.", cost: "Three extra tables for a single-source domain like HR, with nothing to integrate. Ceremony slows the team down." },
+    { t: "No: Kimball straight from the sources, everywhere", gain: "Fewer tables, faster to build.", cost: "Integrating several businesses inside dimension builds, and losing what each system said and when." },
+    { t: "Where several sources describe the same thing, or history must be auditable: vault in silver. Everywhere else: straight to Kimball", best: true,
+      why: "Clients, advisers, firms and requests are described by several Quilter systems, and regulators can ask what we knew and when, so the vault earns its tables there. HR or marketing spend has one source, so it goes straight to a star. Either way gold looks the same to its users.",
+      gain: "Integration and audit where they matter; simplicity elsewhere.", cost: "Two patterns to teach the team, so the decision rule is written down." },
+  ]);
+}
+
+// ---- the use case this vault serves --------------------------------------------------------------
+function renderUse() {
+  const u = V.use;
+  $("#uses").innerHTML = `<div class="card dv-uses"><span class="step">The use case this vault serves</span><div class="use ${usesReady ? "" : "locked"}" id="use-0"><h3>${esc(u.title)}</h3>
       <p class="use-q">${esc(u.q)}</p><p class="use-who">${esc(u.who)}</p>
       <p class="use-lp"><b>The Lifepal link.</b> ${esc(u.lifepal)}</p>
       <details><summary>The query</summary>${show(u.sql)}</details>
-      <button class="small-btn solid" ${usesReady ? "" : "disabled"}>${usesReady ? "Run it on the vault" : "Build the vault first"}</button><div class="use-out"></div></div>`).join("")}</div></div>`;
-  USES.forEach((u, i) => { $(`#use-${i} button`).onclick = async () => {
-    const out = $(`#use-${i} .use-out`); out.innerHTML = '<p class="muted">Running…</p>';
+      <button class="small-btn solid" ${usesReady ? "" : "disabled"}>${usesReady ? "Run it on the vault" : "Build the vault first"}</button><div class="use-out"></div></div></div>`;
+  $("#use-0 button").onclick = async () => {
+    const out = $("#use-0 .use-out"); out.innerHTML = '<p class="muted">Running…</p>';
     try {
       const res = await lake.as(u.persona, (l) => l.runSQL(u.sql));
       const rs = res.rows.map((r) => Object.fromEntries(res.columns.map((k, j) => [k, r[j]])));
       out.innerHTML = `<p class="use-say">${u.say(rs)}</p>${table(res)}<p class="muted">${esc(u.note)}</p>`;
     } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
-  }; });
+  };
 }
 
-/** The SQL behind each build step, for the Live lakehouse code browser. */
-export const VAULT_SQL = { "01_sources.sql": SOURCES, "02_hub_client.sql": HUB, "03_links.sql": LINKS, "04_satellites.sql": SATS, "05_next_day_change.sql": DAY2, "06_pit_dim_client_360.sql": PIT("2026-10-02 23:59") };
+/** The SQL behind each vault, for the Live lakehouse code browser. */
+export const VAULT_SQL = Object.fromEntries([["client_360", A], ["adviser_firms", B], ["transfers_duty", C]]
+  .flatMap(([dir, v]) => Object.entries(v.files).map(([f, q]) => [`${dir}/${f}`, q])));
 
-/** Mount the whole simulation into `root`; used by the chapter page and the Live lakehouse tab. */
+// ---- mount ------------------------------------------------------------------------------------------
+function loadVault(key) {
+  V = VAULTS[key]; counts = {}; built = new Set(); usesReady = false;
+  document.querySelectorAll(".dv-switch button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === key));
+  $("#dvtitle").textContent = V.title; $("#dvintro").textContent = V.intro;
+  $("#dvplay").disabled = false; $("#dvplay").textContent = "▶ Build it";
+  $("#dvnow").innerHTML = "Press <b>Build it</b> to watch this vault being built on the live lakehouse, or run each step yourself below.";
+  model();
+  $("#steps").innerHTML = V.steps.map((s, i) => `<div class="card dv-step" id="st-${i}" ${i ? "hidden" : ""}><span class="step">${esc(s.sub)}</span><h2>${esc(s.title)}</h2><p>${esc(s.text)}</p>
+    ${show(s.sql)}<button class="small-btn solid">${s.query ? "Ask the vault" : "Run it"}</button><div class="dv-out"></div></div>`).join("");
+  V.steps.forEach((_, i) => $("button", $(`#st-${i}`)).onclick = () => runStep(i));
+  $("#prog").innerHTML = V.steps.map(() => "<i></i>").join("");
+  $("#dcwrap").innerHTML = "";
+  renderUse();
+}
+
+/** Mount the three vaults into `root`; used by the chapter page and the Live lakehouse tab. */
 export function mountVault(root, l) {
   lake = l;
-  counts = {}; built = new Set();
-  usesReady = false;
-  root.insertAdjacentHTML("beforeend", `<div class="dv-model card"><div class="dv-head"><div><span class="step">The model</span><h2>Hubs, links and satellites</h2></div>
-    <button class="btn-run" id="dvplay">▶ Build it</button></div><p class="dv-now" id="dvnow">Press <b>Build it</b> to watch the vault being built on the live lakehouse, or run each step yourself below.</p><div id="model"></div></div>
+  root.insertAdjacentHTML("beforeend", `<div class="dv-switch" role="group" aria-label="Choose a Data Vault">${Object.values(VAULTS).map((v) =>
+      `<button data-v="${v.key}" aria-pressed="false"><b>${esc(v.button)}</b><small>${esc(v.title)}</small></button>`).join("")}</div>
+    <div class="dv-model card"><div class="dv-head"><div><span class="step">The model</span><h2 id="dvtitle"></h2><p class="dv-intro" id="dvintro"></p></div>
+    <button class="btn-run" id="dvplay">▶ Build it</button></div><p class="dv-now" id="dvnow"></p><div id="model"></div></div>
     <div class="progress" id="prog"></div><div id="steps"></div><div id="dcwrap"></div><div id="uses"></div>`);
-  renderUses();
-  model();
-  $("#steps").innerHTML = STEPS.map((s, i) => `<div class="card dv-step" id="st-${i}" ${i ? "hidden" : ""}><span class="step">${esc(s.sub)}</span><h2>${esc(s.title)}</h2><p>${esc(s.text)}</p>
-    ${show(s.sql)}<button class="small-btn solid">${s.query ? "Ask the vault" : "Run it"}</button><div class="dv-out"></div></div>`).join("");
-  STEPS.forEach((_, i) => $("button", $(`#st-${i}`)).onclick = () => runStep(i));
-  $("#prog").innerHTML = STEPS.map(() => "<i></i>").join("");
+  root.querySelectorAll(".dv-switch button").forEach((b) => b.onclick = () => { if (!$("#dvplay").disabled || $("#dvplay").textContent.startsWith("Built")) loadVault(b.dataset.v); });
   $("#dvplay").onclick = async () => {
     $("#dvplay").disabled = true;
     const stage = $("#model").closest(".dv-model");
     stage.classList.add("sticky");
-    for (let i = 0; i < STEPS.length; i++) {
+    for (let i = 0; i < V.steps.length; i++) {
       const card = $(`#st-${i}`);
       if (card.classList.contains("done")) continue;
       card.hidden = false;
       card.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "end" });
-      $("#dvnow").innerHTML = `<b>${esc(STEPS[i].sub)}.</b> ${esc(STEPS[i].title)}`;
-      model(new Set(STEPS[i].lit), FLOWS[STEPS[i].key]);
+      $("#dvnow").innerHTML = `<b>${esc(V.steps[i].sub)}.</b> ${esc(V.steps[i].title)}`;
+      model(new Set(V.steps[i].lit), V.FLOWS[V.steps[i].key]);
       await sleep(still ? 200 : 1700);
       await runStep(i);
-      $("#dvnow").innerHTML = `<b>${esc(STEPS[i].sub)}.</b> ${esc(STEPS[i].title)} · <span class="ok">done</span>`;
+      $("#dvnow").innerHTML = `<b>${esc(V.steps[i].sub)}.</b> ${esc(V.steps[i].title)} · <span class="ok">done</span>`;
       await sleep(still ? 200 : 900);
     }
     stage.classList.remove("sticky");
-    $("#dvnow").innerHTML = `<b>Built.</b> ${fmt(counts.hub_client)} clients in the hub, three satellites with full history, and a Kimball view of ${fmt(counts.mart)} clients for everyone else.`;
+    $("#dvnow").innerHTML = `<b>Built.</b> ${esc(V.title)}: every table above is on the live lakehouse, and the use case below is unlocked.`;
     $("#dvplay").textContent = "Built ✓";
   };
+  loadVault("a");
 }
 
 if (document.body.dataset.page === "vault") {
