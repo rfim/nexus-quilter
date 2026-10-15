@@ -159,3 +159,25 @@
 .dvn.built rect{stroke-width:2}
 .dvdot{fill:var(--green)}
 @media (max-width:900px){.dv-model.sticky{position:static}}
+
+/* data vault: use cases and fixes */
+.dv-head .btn-run{border:0;background:var(--green);color:#fff;font-weight:800;padding:.7rem 1.2rem;border-radius:6px;font-size:.92rem;cursor:pointer}
+.dv-head .btn-run:disabled{opacity:.6;cursor:default}
+.dvn.mart.todo rect{fill:#f3f6f4;stroke:#9fb3a7}.dvn.mart.todo .t1{fill:#33463a}.dvn.mart.todo .t2{fill:#56665c}
+.use-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin-top:.6rem}
+.use{position:relative;border:1px solid var(--line);border-top:4px solid var(--green);border-radius:8px;padding:.9rem 1rem;background:#fff;min-width:0}
+.use.locked{opacity:.6}
+.use-n{position:absolute;top:.6rem;right:.8rem;font:800 1.4rem var(--font-ui);color:#cfe3d6}
+.use h3{font-size:1rem;margin:0 1.6rem .4rem 0}
+.use-q{font-weight:700;color:var(--forest);font-size:.9rem;margin:.2rem 0}
+.use-who{font-size:.76rem;color:#7c8b81;margin:.1rem 0 .5rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.use-lp{font-size:.84rem;background:#eaf1fd;border-left:3px solid #2f6fd6;padding:.45rem .6rem;border-radius:0 6px 6px 0}
+.use-lp b{color:#1a5fd1}
+.use details{margin:.5rem 0}.use summary{cursor:pointer;font-size:.8rem;color:var(--green);font-weight:700}
+.use .use-out{margin-top:.6rem;overflow-x:auto}
+.use .use-out table{border-collapse:collapse;font:11.5px var(--font-mono);width:100%}
+.use .use-out th,.use .use-out td{border-bottom:1px solid #eef2ef;padding:.25rem .45rem;text-align:left;white-space:nowrap}
+.use .use-out th{background:#f1f5f2;font-family:var(--font-ui)}
+.use-say{font-size:.88rem;background:#e7f1ea;border-radius:6px;padding:.5rem .65rem}
+@media (max-width:1100px){.use-grid{grid-template-columns:1fr}}
+.use .use-out .muted{font-size:.78rem;line-height:1.45;margin-top:.4rem}

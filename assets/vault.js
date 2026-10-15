@@ -215,9 +215,10 @@ async function runStep(i) {
 }
 
 function finish() {
+  usesReady = true; renderUses();
   const el = document.createElement("div");
   el.className = "card"; el.innerHTML = `<span class="step">The judgement call</span><h2>Would you use a vault for every domain?</h2><div id="dc"></div>`;
-  $("#steps").append(el);
+  $("#dcwrap").replaceChildren(el);
   choose($("#dc"), [
     { t: "Yes: everything goes through the vault", gain: "One pattern everywhere.", cost: "Three extra tables for a single-source domain like HR, with nothing to integrate. Ceremony slows the team down." },
     { t: "No: Kimball straight from the sources, everywhere", gain: "Fewer tables, faster to build.", cost: "Integrating three businesses inside dimension builds, and losing what each system said and when." },
@@ -227,6 +228,81 @@ function finish() {
   ]);
 }
 
+// ---- what the vault makes possible: three Quilter use cases ------------------------------------
+const CLIENT_MAP = `c AS (SELECT md5(ni_number) AS hk_client, 'C' || substr(platform_ref, 5) AS client_id FROM src_platform)`;
+const USES = [
+  { key: "firms", title: "Adviser health: spot flows slowing before they leave", who: "Platform distribution · relationship managers · Finance",
+    q: "Which advisers' clients are sending less money in this quarter than last?",
+    lifepal: "Lifepal sat between insurers and customers, as Quilter sits between advisers and clients. Partner reporting on one agreed “bind” definition, with each insurer scoped to its own data, cut ad-hoc requests by 60%.",
+    note: "The vault's link_client_adviser joins the adviser CRM to platform flows through the shared client hub. Without it, the two systems have no common key.",
+    persona: "engineer", sql: `WITH ${CLIENT_MAP},
+f AS (SELECT a.client_id,
+             sum(amount_gbp) FILTER (WHERE trade_date >= DATE '2026-07-01') AS q3,
+             sum(amount_gbp) FILTER (WHERE trade_date >= DATE '2026-04-01' AND trade_date < DATE '2026-07-01') AS q2
+      FROM nexus.gold.fct_platform_transaction t JOIN nexus.silver.account a USING (account_id)
+      WHERE transaction_type IN ('contribution', 'withdrawal', 'fee') GROUP BY ALL)
+SELECT l.adviser, count(*) AS clients, round(sum(f.q2), 0) AS net_flows_q2, round(sum(f.q3), 0) AS net_flows_q3,
+       round(100 * (sum(f.q3) - sum(f.q2)) / abs(sum(f.q2)), 1) AS change_pct
+FROM link_client_adviser l JOIN c USING (hk_client) JOIN f USING (client_id)
+GROUP BY ALL HAVING count(*) >= 10
+ORDER BY change_pct LIMIT 8`,
+    say: (r) => r.length ? `Early warning: <b>${esc(r[0].adviser)}</b>'s clients went from <b>${gbp(r[0].net_flows_q2)}</b> of net flows last quarter to <b>${gbp(r[0].net_flows_q3)}</b> this quarter. That's the conversation for the relationship manager this week.` : "" },
+  { key: "duty", title: "Transfers out and Consumer Duty: fair journeys across the group", who: "Head of Consumer Duty · platform operations",
+    q: "Do clients known to more than one Quilter business, or in vulnerable circumstances, wait longer to transfer out?",
+    lifepal: "Insurer turnaround (application to decision) was the same kind of measure. Feeds arrived up to 72 hours late; CDC with idempotent MERGE took reporting from 24 hours to under 5 minutes.",
+    note: "Runs as the pipeline service principal, which can read the vulnerability flag, and returns aggregates only, dropping any group under 10 journeys. The vault supplies how many businesses know each client.",
+    persona: "pipeline", sql: `WITH ${CLIENT_MAP},
+b AS (SELECT hk_client, 1 + (hk_client IN (SELECT hk_client FROM link_client_adviser))::INT
+                          + (hk_client IN (SELECT hk_client FROM link_client_portfolio))::INT AS businesses FROM hub_client)
+SELECT b.businesses, CASE WHEN d.vulnerable THEN 'vulnerable' ELSE 'not vulnerable' END AS client_group,
+       count(*) AS transfers_out,
+       median(date_diff('day', CAST(j.created_on AS DATE), CAST(j.completed_on AS DATE))) AS median_days
+FROM nexus.silver.service_journey j
+JOIN nexus.silver.dim_client d USING (client_id)
+JOIN c USING (client_id) JOIN b USING (hk_client)
+WHERE j.journey_type = 'transfer_out' AND j.completed_on IS NOT NULL
+GROUP BY ALL HAVING count(*) >= 10
+ORDER BY businesses, client_group`,
+    say: (r) => { const g = (n, v) => r.find((x) => x.businesses === n && (x.client_group === "vulnerable") === v);
+      const pairs = [1, 2, 3].map((n) => [n, g(n, true), g(n, false)]).filter(([, v, o]) => v && o);
+      return pairs.length ? `Like for like, vulnerable clients wait longer: ${pairs.map(([n, v, o]) => `<b>${v.median_days} vs ${o.median_days} days</b> for clients known to ${n} business${n > 1 ? "es" : ""}`).join(", ")}. The Duty owner hears it first, with the evidence.` : ""; } },
+  { key: "ai", title: "A governed AI assistant for advisers", who: "Quilter Financial Planning advisers · Compliance",
+    q: "“How is my book doing?”, asked by one adviser, answered only from their own clients.",
+    lifepal: "Definitions in the semantic layer first cut ad-hoc requests by 60%, and AI agents got read-only, role-scoped access to governed metadata, never a service account.",
+    note: "The assistant would call this as a governed function with the adviser's own identity, so it can only ever see that adviser's clients. Here it runs for Adviser 26.",
+    persona: "engineer", sql: `WITH ${CLIENT_MAP},
+mine AS (SELECT hk_client FROM link_client_adviser WHERE adviser = 'Adviser 26'),
+risk AS (SELECT hk_client, risk_profile FROM sat_client_advice
+         QUALIFY row_number() OVER (PARTITION BY hk_client ORDER BY load_ts DESC) = 1),
+flows AS (SELECT a.client_id, sum(amount_gbp) AS q3 FROM nexus.gold.fct_platform_transaction t
+          JOIN nexus.silver.account a USING (account_id)
+          WHERE transaction_type IN ('contribution', 'withdrawal', 'fee') AND trade_date >= DATE '2026-07-01' GROUP BY ALL)
+SELECT r.risk_profile, count(*) AS clients, round(sum(coalesce(f.q3, 0)), 0) AS net_flows_q3
+FROM mine JOIN risk r USING (hk_client) JOIN c USING (hk_client) LEFT JOIN flows f USING (client_id)
+GROUP BY ALL ORDER BY clients DESC`,
+    say: (r) => { const n = r.reduce((a, x) => a + x.clients, 0), f = r.reduce((a, x) => a + x.net_flows_q3, 0);
+      return `“Your book: <b>${n} clients</b>, net flows of <b>${gbp(f)}</b> this quarter; most are ${esc(r[0]?.risk_profile || "")}.” Source: the vault and the certified fact, Delta-versioned, owner named. No advice, and no other adviser's clients.`; } },
+];
+let usesReady = false;
+const gbp = (v) => `${v < 0 ? "−" : ""}£${fmt(Math.abs(v), 0)}`;
+function renderUses() {
+  $("#uses").innerHTML = `<div class="card dv-uses"><span class="step">What the vault makes possible</span><h2>Three Quilter use cases, each one query away</h2>
+    <p>${usesReady ? "The vault is built. Run any of these on the live lakehouse." : "Build the vault above first (press <b>Build it</b>), then run these on the live lakehouse."}</p>
+    <div class="use-grid">${USES.map((u, i) => `<div class="use ${usesReady ? "" : "locked"}" id="use-${i}"><span class="use-n">${i + 1}</span><h3>${esc(u.title)}</h3>
+      <p class="use-q">${esc(u.q)}</p><p class="use-who">${esc(u.who)}</p>
+      <p class="use-lp"><b>The Lifepal link.</b> ${esc(u.lifepal)}</p>
+      <details><summary>The query</summary>${show(u.sql)}</details>
+      <button class="small-btn solid" ${usesReady ? "" : "disabled"}>${usesReady ? "Run it on the vault" : "Build the vault first"}</button><div class="use-out"></div></div>`).join("")}</div></div>`;
+  USES.forEach((u, i) => { $(`#use-${i} button`).onclick = async () => {
+    const out = $(`#use-${i} .use-out`); out.innerHTML = '<p class="muted">Running…</p>';
+    try {
+      const res = await lake.as(u.persona, (l) => l.runSQL(u.sql));
+      const rs = res.rows.map((r) => Object.fromEntries(res.columns.map((k, j) => [k, r[j]])));
+      out.innerHTML = `<p class="use-say">${u.say(rs)}</p>${table(res)}<p class="muted">${esc(u.note)}</p>`;
+    } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+  }; });
+}
+
 /** The SQL behind each build step, for the Live lakehouse code browser. */
 export const VAULT_SQL = { "01_sources.sql": SOURCES, "02_hub_client.sql": HUB, "03_links.sql": LINKS, "04_satellites.sql": SATS, "05_next_day_change.sql": DAY2, "06_pit_dim_client_360.sql": PIT("2026-10-02 23:59") };
 
@@ -234,9 +310,11 @@ export const VAULT_SQL = { "01_sources.sql": SOURCES, "02_hub_client.sql": HUB, 
 export function mountVault(root, l) {
   lake = l;
   counts = {}; built = new Set();
+  usesReady = false;
   root.insertAdjacentHTML("beforeend", `<div class="dv-model card"><div class="dv-head"><div><span class="step">The model</span><h2>Hubs, links and satellites</h2></div>
     <button class="btn-run" id="dvplay">▶ Build it</button></div><p class="dv-now" id="dvnow">Press <b>Build it</b> to watch the vault being built on the live lakehouse, or run each step yourself below.</p><div id="model"></div></div>
-    <div class="progress" id="prog"></div><div id="steps"></div>`);
+    <div class="progress" id="prog"></div><div id="steps"></div><div id="dcwrap"></div><div id="uses"></div>`);
+  renderUses();
   model();
   $("#steps").innerHTML = STEPS.map((s, i) => `<div class="card dv-step" id="st-${i}" ${i ? "hidden" : ""}><span class="step">${esc(s.sub)}</span><h2>${esc(s.title)}</h2><p>${esc(s.text)}</p>
     ${show(s.sql)}<button class="small-btn solid">${s.query ? "Ask the vault" : "Run it"}</button><div class="dv-out"></div></div>`).join("");
