@@ -1,0 +1,6 @@
+version: 2
+models:
+  - {name: dim_client_360, columns: [{name: hk_client, data_tests: [unique, not_null]}]}
+  - name: journey_outcomes
+    data_tests:
+      - dbt_utils_free_min_cell: {arguments: {column: journeys, minimum: 10}}

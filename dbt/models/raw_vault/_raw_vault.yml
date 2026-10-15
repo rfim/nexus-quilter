@@ -1,0 +1,25 @@
+version: 2
+models:
+  - {name: hub_client, columns: [{name: hk_client, data_tests: [unique, not_null]}]}
+  - {name: hub_adviser, columns: [{name: hk_adviser, data_tests: [unique, not_null]}]}
+  - {name: hub_firm, columns: [{name: hk_firm, data_tests: [unique, not_null]}]}
+  - {name: hub_portfolio, columns: [{name: hk_portfolio, data_tests: [unique, not_null]}]}
+  - {name: hub_journey, columns: [{name: hk_journey, data_tests: [unique, not_null]}]}
+  - name: link_client_adviser
+    columns:
+      - {name: hk_client_adviser, data_tests: [unique]}
+      - {name: hk_client, data_tests: [{relationships: {arguments: {to: ref('hub_client'), field: hk_client}}}]}
+      - {name: hk_adviser, data_tests: [{relationships: {arguments: {to: ref('hub_adviser'), field: hk_adviser}}}]}
+  - name: link_client_portfolio
+    columns: [{name: hk_client_portfolio, data_tests: [unique]}, {name: hk_client, data_tests: [{relationships: {arguments: {to: ref('hub_client'), field: hk_client}}}]}]
+  - name: link_firm_adviser
+    columns: [{name: hk_firm_adviser, data_tests: [unique]}, {name: hk_firm, data_tests: [{relationships: {arguments: {to: ref('hub_firm'), field: hk_firm}}}]}]
+  - name: link_client_journey
+    columns: [{name: hk_client_journey, data_tests: [unique]}, {name: hk_journey, data_tests: [{relationships: {arguments: {to: ref('hub_journey'), field: hk_journey}}}]}]
+  - {name: sat_client_platform, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_client]}}}]}
+  - {name: sat_client_advice, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_client]}}}]}
+  - {name: sat_client_cheviot, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_client]}}}]}
+  - {name: sat_firm, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_firm]}}}]}
+  - {name: sat_client_flows, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_client, month]}}}]}
+  - {name: sat_journey_status, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_journey, status]}}}]}
+  - {name: sat_client_vulnerability, data_tests: [{no_repeated_hashdiff: {arguments: {keys: [hk_client]}}}]}

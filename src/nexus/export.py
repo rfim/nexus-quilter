@@ -81,7 +81,7 @@ def export_landing() -> None:
         shutil.copy2(feed / "part-0001.json", dst / f"{feed.name}.jsonl")
 
 
-def export() -> None:
+def export(vault: dict | None = None) -> None:
     spark = get_spark()
     log = json.loads((TARGET / "run_log.json").read_text())
     products = {c["product"]: c for c in contracts.load_products()}
@@ -113,6 +113,8 @@ def export() -> None:
             "passed": c["passed"], "total": c["total"],
             "results": [{k: r[k] for k in ("check", "kind", "status", "failing_rows", "sql", "sample")} for r in c["results"]],
         })
+    if vault:  # the dbt Data Vault's row counts per load (src/nexus/vault_dbt.py)
+        data["vault"] = vault
     export_lakehouse()
     export_landing()
     SITE_DATA.parent.mkdir(parents=True, exist_ok=True)

@@ -5,6 +5,9 @@ bundle:
 variables:
   catalog:
     default: nexus
+  warehouse_id:
+    description: SQL warehouse the dbt Data Vault runs on
+    default: ""
 
 resources:
   jobs:
@@ -22,9 +25,20 @@ resources:
         - task_key: pipeline
           python_wheel_task: {package_name: nexus, entry_point: pipeline}
           environment_key: default
+        - task_key: data_vault          # dbt: hubs, links and satellites, then the marts and their tests
+          depends_on: [{task_key: pipeline}]
+          dbt_task:
+            project_directory: dbt
+            catalog: "${var.catalog}"
+            schema: vault
+            warehouse_id: "${var.warehouse_id}"
+            commands: ["dbt deps", "dbt seed", "dbt build"]
+          environment_key: dbt
       environments:
         - environment_key: default
           spec: {client: "2", dependencies: [pyyaml]}
+        - environment_key: dbt
+          spec: {client: "2", dependencies: ["dbt-databricks>=1.10,<2"]}
       parameters:
         - {name: NEXUS_CATALOG, default: "${var.catalog}"}
 

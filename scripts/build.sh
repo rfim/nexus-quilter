@@ -8,7 +8,8 @@ export PYTHONPATH=src
 python - <<'PY'
 from nexus.pipeline import run, summarise
 from nexus.export import export
+from nexus.vault_dbt import run as build_vault
 summarise(run())
-export()
+export(vault=build_vault())   # the Data Vault, in dbt, in the same Spark session
 print("wrote assets/data/site.json")
 PY

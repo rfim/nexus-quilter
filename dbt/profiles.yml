@@ -1,0 +1,17 @@
+# No secrets here: Databricks credentials come from the environment (or the job's identity).
+nexus_vault:
+  target: local
+  outputs:
+    local:                      # runs inside the pipeline's Spark session (scripts/build.sh, CI)
+      type: spark
+      method: session
+      host: NA
+      schema: nexus_vault
+    databricks:                 # production: Unity Catalog, run as a dbt task in the bundle job
+      type: databricks
+      catalog: nexus
+      schema: vault
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN', '') }}"
+      threads: 8

@@ -1,0 +1,9 @@
+version: 2
+sources:
+  - name: silver
+    description: The pipeline's silver layer (src/nexus/silver.py).
+    schema: "{{ 'silver' if target.type == 'databricks' else 'nexus_silver' }}"
+    tables: [{name: dim_client}, {name: account}, {name: service_journey}]
+  - name: gold
+    schema: "{{ 'gold' if target.type == 'databricks' else 'nexus_gold' }}"
+    tables: [{name: fct_platform_transaction}]

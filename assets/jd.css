@@ -191,3 +191,5 @@
 .dv-switch button[aria-pressed=true]{border-left-color:var(--green);background:#e7f1ea;box-shadow:0 0 0 2px rgba(15,123,63,.18)}
 .dv-intro{color:var(--muted);margin:.2rem 0 0;max-width:75ch;font-size:.92rem}
 @media (max-width:900px){.dv-switch{grid-template-columns:1fr}}
+
+.dv-prod table{width:100%;border-collapse:collapse;font-size:.85rem}.dv-prod th,.dv-prod td{text-align:left;padding:.3rem .5rem;border-bottom:1px solid var(--line,#e5e7eb)}.dv-prod td:not(:first-child),.dv-prod th:not(:first-child){text-align:right}.dv-prod td.ok{color:var(--green);font-weight:700}.dv-prod .scroll{overflow-x:auto}

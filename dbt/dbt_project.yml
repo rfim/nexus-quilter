@@ -1,0 +1,29 @@
+# The Data Vault for Quilter, in dbt. Same models locally (Spark + Delta, in the pipeline's
+# own session) and on Databricks (dbt-databricks, Unity Catalog), deployed by the Asset Bundle.
+name: nexus_vault
+version: "1.0.0"
+profile: nexus_vault
+config-version: 2
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  load_day: 1          # 1 = first load, 2 = the next morning's changes (CI loads 1, 1 again, then 2)
+
+models:
+  nexus_vault:
+    +file_format: delta
+    staging:
+      +materialized: view
+    raw_vault:
+      +materialized: incremental
+      +incremental_strategy: append     # insert-only: hubs, links and satellites never update
+    marts:
+      +materialized: table
+seeds:
+  nexus_vault:
+    +file_format: delta

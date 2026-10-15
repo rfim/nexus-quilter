@@ -16,7 +16,8 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `src/nexus/gold.py` | Incremental fact with a 72-hour lookback and point-in-time fund join, then one data product per department. |
 | `src/nexus/contracts.py` | Compiles each department contract into SQL checks, a Lakeflow expectation set and Unity Catalog grants, and runs the checks. |
 | `contracts/` | Source contracts (`sources/`) and the five department contracts (`products/`). |
-| `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
+| `dbt/` | The Data Vault for Quilter in dbt: one `hub_client` on the NI number shared by Client 360, adviser firms and Consumer Duty; adviser, firm, portfolio and journey hubs; links; insert-only satellites (AutomateDV-style macros in `dbt/macros/vault.sql`); an effectivity satellite for advisers moving firm; a restricted vulnerability satellite; three marts; 58 tests. `src/nexus/vault_dbt.py` runs it in the pipeline's Spark session: day 1, day 1 again (must change nothing), then day 2. |
+| `databricks.yml` | Asset Bundle for running the same package as a Databricks job, with the dbt Data Vault as a `dbt_task` after the pipeline. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
 | `simulate.html`, `assets/sim/` | How I work: the start of the story, “How the data gets there” (the ELT run) and chapter 4 (a week with the business). |
 | `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html`, `ask.html`, `vault.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
@@ -34,7 +35,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **On-call shift** (5 · operational excellence). Live SLO tiles, triage, the planted £250 reconciliation break investigated with three queries, an incident record with time to acknowledge and mitigate, and a volume alert tuned against a year of real daily counts.
 - **Consumer Duty** (regulatory). The analyst can't read the vulnerability flag; the pipeline's service principal publishes an aggregate with a minimum cell size, which shows vulnerable clients waiting about twice as long on transfers out.
 - **Streaming** (batch and real-time). 13,242 events in micro-batches, each a real MERGE, with a watermarked keyed aggregate. With MERGE and no watermark it matches the lakehouse exactly; the other settings show why the certified numbers stay on batch.
-- **Bring it together** (data modelling). Three Data Vaults for Quilter, each built step by step (or animated with Build it) on the live lakehouse: **A · Client 360** (three businesses describe the same client; hub on the standardised NI number, insert-only satellites, a point-in-time Kimball dimension), **B · Adviser firms** (firm, adviser and client hubs, a tier change and an adviser moving firm recorded with an effectivity satellite, net flows by firm), and **C · Transfers and Consumer Duty** (status history, a late correction kept next to the original, vulnerability in its own restricted satellite, aggregate outcomes). Each ends in the use case it serves, and its SQL is in the Live lakehouse code browser under `data_vault/`.
+- **Bring it together** (data modelling). Three Data Vaults for Quilter, each built step by step (or animated with Build it) on the live lakehouse: **A · Client 360** (three businesses describe the same client; hub on the standardised NI number, insert-only satellites, a point-in-time Kimball dimension), **B · Adviser firms** (firm, adviser and client hubs, a tier change and an adviser moving firm recorded with an effectivity satellite, net flows by firm), and **C · Transfers and Consumer Duty** (status history, a late correction kept next to the original, vulnerability in its own restricted satellite, aggregate outcomes). Each ends in the use case it serves, and its SQL is in the Live lakehouse code browser under `data_vault/`. The production version runs for real in dbt (`dbt/`), and the page shows its row counts from the last run.
 - **Let them ask** (self-service and AI). Part 1 builds the semantic layer: three reports give three numbers for net flows, Finance's definition is agreed, written as a metric view, tested live (equals the certified product, grain, ledger) and published with grants and chatbot synonyms. Part 2 is the semantic layer as metric views, and a chat that maps a question to a certified measure, compiles it to SQL, runs it on the lakehouse with the asker's permissions and cites the source. It refuses undefined metrics, personal data and advice. A small rule-based parser stands in for the LLM.
 
 ## The lakehouse in your browser
@@ -62,7 +63,8 @@ Python 3.12+ and Java 17+:
 ```bash
 pip install -r requirements.txt
 python -m pytest -q          # unit tests
-./scripts/build.sh           # full run; rewrites assets/data/site.json
+./scripts/build.sh           # pipeline + dbt Data Vault; rewrites assets/data/site.json
+PYTHONPATH=src python -m nexus.vault_dbt   # just the vault, on the last run's tables
 python -m http.server 8000   # then open http://localhost:8000/
 ```
 

@@ -167,12 +167,22 @@ async function renderTable(t) {
 // ---- code: the real files from the repo, served next to the site -------------------------------
 const REPO_URL = "https://github.com/rfim/nexus-quilter/blob/main/";
 const CODE = [
-  ["src/nexus", ["bronze.py", "silver.py", "gold.py", "contracts.py", "pipeline.py", "generate.py", "spark.py", "export.py"]],
+  ["src/nexus", ["bronze.py", "silver.py", "gold.py", "contracts.py", "pipeline.py", "generate.py", "spark.py", "export.py", "vault_dbt.py"]],
   ["contracts/products", ["finance_net_flows.yml", "executive_kpis.yml", "marketing_acquisition.yml", "hr_workforce.yml", "product_journeys.yml"]],
   ["contracts/sources", ["sources.yml"]],
   ["", ["databricks.yml"]],
+  ["dbt", ["dbt_project.yml", "profiles.yml"]],
+  ["dbt/macros", ["vault.sql", "tests.sql"]],
+  ["dbt/seeds", ["firm_register.csv"]],
+  ["dbt/models/staging", ["_sources.yml", "stg_platform_client.sql", "stg_advice_crm.sql", "stg_cheviot.sql", "stg_firm_register.sql",
+    "stg_firm_adviser.sql", "stg_client_flows.sql", "stg_journey_events.sql", "stg_client_vulnerability.sql"]],
+  ["dbt/models/raw_vault", ["hub_client.sql", "hub_adviser.sql", "hub_firm.sql", "hub_portfolio.sql", "hub_journey.sql",
+    "link_client_adviser.sql", "link_client_portfolio.sql", "link_firm_adviser.sql", "link_client_journey.sql",
+    "sat_client_platform.sql", "sat_client_advice.sql", "sat_client_cheviot.sql", "sat_firm.sql", "sat_client_flows.sql",
+    "sat_journey_status.sql", "sat_client_vulnerability.sql", "eff_firm_adviser.sql", "_raw_vault.yml"]],
+  ["dbt/models/marts", ["dim_client_360.sql", "fct_firm_flows.sql", "journey_outcomes.sql", "_marts.yml"]],
 ];
-const langOf = (f) => f.endsWith(".py") ? "python" : f.endsWith(".sql") ? "sql" : "yaml";
+const langOf = (f) => f.endsWith(".py") ? "python" : f.endsWith(".sql") ? "sql" : f.endsWith(".csv") ? "csv" : "yaml";
 async function renderCode(path) {
   current = "code";
   document.querySelectorAll("#tree button").forEach((b) => b.classList.toggle("on", b.dataset.file === path));
@@ -184,7 +194,7 @@ async function renderCode(path) {
   const lines = text.replace(/\n$/, "").split("\n");
   const hl = NexusHL.hl(text.replace(/\n$/, ""), langOf(path)).split("\n");
   $("#view").innerHTML = `<div class="nb-head"><div><h1 class="code-title">${esc(path)}</h1>
-    <p>${vault ? "The SQL behind this Data Vault (chapter 9), run step by step in your browser on the live lakehouse." : "The real file from the repository: the same code ran the pipeline that built these Delta tables."} ${lines.length} lines · ${langOf(path).toUpperCase()}</p></div>
+    <p>${vault ? "The SQL behind this Data Vault (chapter 9), run step by step in your browser on the live lakehouse. The production version is the dbt project under dbt/." : path.startsWith("dbt/") ? "The Data Vault in dbt. CI runs it on Spark and Delta right after the pipeline (day 1, day 1 again to prove a replay changes nothing, then day 2); on Databricks the bundle runs it as a dbt task." : "The real file from the repository: the same code ran the pipeline that built these Delta tables."} ${lines.length} lines · ${langOf(path).toUpperCase()}</p></div>
     ${vault ? `<a class="btn ghost" href="#vault" id="tovault">Open the Data Vault build</a>` : `<a class="btn ghost" href="${REPO_URL}${path}" target="_blank" rel="noopener">Open on GitHub ↗</a>`}</div>
     <div class="code-file"><ol>${hl.map((h) => `<li>${h || " "}</li>`).join("")}</ol></div>`;
   const tv = $("#tovault"); if (tv) tv.onclick = (e) => { e.preventDefault(); showView("vault"); };

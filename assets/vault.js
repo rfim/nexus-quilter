@@ -555,6 +555,25 @@ function loadVault(key) {
   renderUse();
 }
 
+/** The production version: the same vault in dbt, run by CI on Spark and by Databricks as a dbt task. */
+async function renderProd() {
+  let v;
+  try { v = (await (await fetch("assets/data/site.json")).json()).vault; } catch { return; }
+  if (!v) return;
+  const rows = Object.keys(v.day1).map((t) => {
+    const d = v.day2[t] - v.day1[t];
+    return `<tr><td><code>${esc(t)}</code></td><td>${v.day1[t].toLocaleString()}</td><td>${v.day2[t].toLocaleString()}</td><td class="${d ? "ok" : "muted"}">${d ? "+" + d.toLocaleString() : "·"}</td></tr>`;
+  }).join("");
+  $("#dvprod").innerHTML = `<div class="card dv-prod"><span class="step">How it runs in production</span><h2>The same vault, in dbt</h2>
+    <p>What you just built in the browser is how I'd explain it on a whiteboard. In the pipeline it's a dbt project: hubs, links and satellites
+    as insert-only incremental models, written with small AutomateDV-style macros so the hashing and the "only insert when something changed" rule
+    live in one place. All three use cases share one <code>hub_client</code> on the NI number.</p>
+    <p>CI runs it on Spark and Delta straight after the pipeline: day 1, then day 1 again (nothing may change, and nothing did), then day 2's changes.
+    ${v.firm_moves} adviser moved firm, and every dbt test passed on all three loads. On Databricks the Asset Bundle runs the same models as a dbt task after the pipeline.</p>
+    <div class="scroll"><table><thead><tr><th>Table</th><th>Day 1</th><th>Day 2</th><th>Change</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted">Counts from the last real run (<code>scripts/build.sh</code>). The models are in <a href="https://github.com/rfim/nexus-quilter/tree/main/dbt" target="_blank" rel="noopener">dbt/</a> and in the Live lakehouse code browser.</p></div>`;
+}
+
 /** Mount the three vaults into `root`; used by the chapter page and the Live lakehouse tab. */
 export function mountVault(root, l) {
   lake = l;
@@ -562,7 +581,8 @@ export function mountVault(root, l) {
       `<button data-v="${v.key}" aria-pressed="false"><b>${esc(v.button)}</b><small>${esc(v.title)}</small></button>`).join("")}</div>
     <div class="dv-model card"><div class="dv-head"><div><span class="step">The model</span><h2 id="dvtitle"></h2><p class="dv-intro" id="dvintro"></p></div>
     <button class="btn-run" id="dvplay">▶ Build it</button></div><p class="dv-now" id="dvnow"></p><div id="model"></div></div>
-    <div class="progress" id="prog"></div><div id="steps"></div><div id="dcwrap"></div><div id="uses"></div>`);
+    <div class="progress" id="prog"></div><div id="steps"></div><div id="dcwrap"></div><div id="uses"></div><div id="dvprod"></div>`);
+  renderProd();
   root.querySelectorAll(".dv-switch button").forEach((b) => b.onclick = () => { if (!$("#dvplay").disabled || $("#dvplay").textContent.startsWith("Built")) loadVault(b.dataset.v); });
   $("#dvplay").onclick = async () => {
     $("#dvplay").disabled = true;

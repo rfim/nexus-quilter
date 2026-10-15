@@ -221,7 +221,7 @@ body.lh{background:#f4f6f5;height:100vh;display:flex;flex-direction:column;overf
 /* code browser */
 .lh-tree .codetree{margin-top:.4rem;border-top:1px solid var(--line);padding-top:.3rem}
 .lh-tree .ext{display:inline-block;min-width:2.1rem;text-align:center;font:700 .6rem var(--font-mono);border-radius:3px;padding:.05rem .2rem;background:#eef2ef;color:#56665c}
-.lh-tree .ext.python{background:#e3ecfb;color:#2f6fd6}.lh-tree .ext.yaml{background:#fdeee3;color:#b0561c}.lh-tree .ext.sql{background:#fff3d6;color:#8a6a10}
+.lh-tree .ext.python{background:#e3ecfb;color:#2f6fd6}.lh-tree .ext.yaml{background:#fdeee3;color:#b0561c}.lh-tree .ext.sql{background:#fff3d6;color:#8a6a10}.lh-tree .ext.csv{background:#e6f4ea;color:#2b7a3d}
 .code-title{font-family:var(--font-mono);font-size:1.25rem!important}
 .code-file{background:#0d1f16;border-radius:10px;overflow:auto;max-height:calc(100vh - 230px)}
 .code-file ol{margin:0;padding:.8rem 0;counter-reset:ln;list-style:none;font:12.5px/1.6 var(--font-mono);color:#d4d4d4;min-width:max-content}
