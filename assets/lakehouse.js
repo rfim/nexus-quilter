@@ -11,7 +11,7 @@
 // browser; it is not Databricks itself.
 import { openLakehouse, PERSONAS } from "./engine.js";
 import { renderArchitecture, renderOrchestration, renderLineage, renderCost } from "./platform.js";
-import { mountVault } from "./vault.js";
+import { mountVault, VAULT_SQL } from "./vault.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -164,13 +164,42 @@ async function renderTable(t) {
   try { renderResult($("#sample"), await runSQL(`SELECT * FROM ${t.name} LIMIT 20`)); } catch (e) { renderResult($("#sample"), null, e); }
 }
 
+// ---- code: the real files from the repo, served next to the site -------------------------------
+const REPO_URL = "https://github.com/rfim/nexus-quilter/blob/main/";
+const CODE = [
+  ["src/nexus", ["bronze.py", "silver.py", "gold.py", "contracts.py", "pipeline.py", "generate.py", "spark.py", "export.py"]],
+  ["contracts/products", ["finance_net_flows.yml", "executive_kpis.yml", "marketing_acquisition.yml", "hr_workforce.yml", "product_journeys.yml"]],
+  ["contracts/sources", ["sources.yml"]],
+  ["", ["databricks.yml"]],
+];
+const langOf = (f) => f.endsWith(".py") ? "python" : f.endsWith(".sql") ? "sql" : "yaml";
+async function renderCode(path) {
+  current = "code";
+  document.querySelectorAll("#tree button").forEach((b) => b.classList.toggle("on", b.dataset.file === path));
+  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", "false"));
+  const vault = path.startsWith("data_vault/");
+  let text;
+  try { text = vault ? VAULT_SQL[path.split("/")[1]] : await (await fetch(path)).text(); }
+  catch (e) { $("#view").innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const lines = text.replace(/\n$/, "").split("\n");
+  const hl = NexusHL.hl(text.replace(/\n$/, ""), langOf(path)).split("\n");
+  $("#view").innerHTML = `<div class="nb-head"><div><h1 class="code-title">${esc(path)}</h1>
+    <p>${vault ? "The SQL behind each step of the Data Vault build (chapter 9), run in your browser on the live lakehouse." : "The real file from the repository: the same code ran the pipeline that built these Delta tables."} ${lines.length} lines · ${langOf(path).toUpperCase()}</p></div>
+    ${vault ? `<a class="btn ghost" href="#vault" id="tovault">Open the Data Vault build</a>` : `<a class="btn ghost" href="${REPO_URL}${path}" target="_blank" rel="noopener">Open on GitHub ↗</a>`}</div>
+    <div class="code-file"><ol>${hl.map((h) => `<li>${h || " "}</li>`).join("")}</ol></div>`;
+  const tv = $("#tovault"); if (tv) tv.onclick = (e) => { e.preventDefault(); showView("vault"); };
+}
+
 function renderTree() {
   const bySchema = { bronze: [], silver: [], gold: [] };
   for (const t of lake.tables.values()) bySchema[t.layer].push(t);
   $("#tree").innerHTML = `<details open><summary>🗂 nexus</summary>${Object.entries(bySchema).map(([s, ts]) =>
     `<details class="schema" ${s === "gold" ? "open" : ""}><summary>${s}</summary>${ts.sort((a, b) => a.name.localeCompare(b.name)).map((t) =>
-      `<button data-name="${t.name}">${canRead(t) ? "▦" : '<span class="lock">🔒</span>'} ${t.name.split(".")[2]}<span class="ver">v${t.current}</span></button>`).join("")}</details>`).join("")}</details>`;
-  document.querySelectorAll("#tree button").forEach((b) => b.onclick = () => renderTable(lake.tables.get(b.dataset.name)));
+      `<button data-name="${t.name}">${canRead(t) ? "▦" : '<span class="lock">🔒</span>'} ${t.name.split(".")[2]}<span class="ver">v${t.current}</span></button>`).join("")}</details>`).join("")}</details>`
+    + `<details open class="codetree"><summary>⌨ code</summary>${CODE.map(([dir, files]) => (dir ? `<details class="schema" ${dir === "src/nexus" ? "open" : ""}><summary>${dir}</summary>` : "")
+        + files.map((f) => `<button data-file="${dir ? dir + "/" : ""}${f}"><span class="ext ${langOf(f)}">${f.split(".").pop()}</span> ${f}</button>`).join("") + (dir ? "</details>" : "")).join("")}
+      <details class="schema"><summary>data_vault</summary>${Object.keys(VAULT_SQL).map((f) => `<button data-file="data_vault/${f}"><span class="ext sql">sql</span> ${f}</button>`).join("")}</details></details>`;
+  document.querySelectorAll("#tree button").forEach((b) => b.onclick = () => b.dataset.file ? renderCode(b.dataset.file) : renderTable(lake.tables.get(b.dataset.name)));
 }
 
 // ---- contract checks notebook, from the compiled contracts --------------------------------
@@ -210,7 +239,9 @@ ready.then(async () => {
         <p>Quilter's platform, its advice business and Quilter Cheviot each describe the same client with their own keys. Run each step on the live lakehouse: hubs, links, satellites, a change the next day, an audit question, and a Kimball view on top. The longer story is <a href="vault.html">chapter 9 of How I work</a>.</p></div></div><div class="lh-vault"></div>`;
       mountVault(v.querySelector(".lh-vault"), lake); } },
   ];
-  $("#tabs").innerHTML = `<span class="tab-group">Platform</span>${TOUR.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}
+  $("#tabs").innerHTML = `<span class="tab-group">Platform</span>${TOUR.filter((n) => n.key !== "vault").map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}
+    <button class="tab-more" id="more" aria-expanded="false" aria-controls="vaulttab" title="More: Data Vault">»</button>
+    <button role="tab" data-key="vault" id="vaulttab" hidden>Data Vault</button>
     <span class="tab-group">Notebooks</span>${NOTEBOOKS.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}`;
   const open = (key) => {
     current = key;
@@ -219,6 +250,11 @@ ready.then(async () => {
     if (t) t.go(); else renderNotebook(NOTEBOOKS.find((x) => x.key === key));
   };
   showView = open;
-  document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => open(b.dataset.key));
+  const reveal = () => { $("#vaulttab").hidden = false; $("#more").hidden = true; $("#more").setAttribute("aria-expanded", "true"); };
+  document.querySelectorAll("#tabs button[data-key]").forEach((b) => b.onclick = () => open(b.dataset.key));
+  $("#more").onclick = () => { reveal(); open("vault"); };
+  const _open = open;
+  showView = (key) => { if (key === "vault") reveal(); _open(key); };
+  if (location.hash === "#vault") reveal();
   open(TOUR.some((t) => t.key === location.hash.slice(1)) ? location.hash.slice(1) : "arch");
 }).catch((e) => setEngine(`Could not start: ${e.message}`));

@@ -217,3 +217,16 @@ body.lh{background:#f4f6f5;height:100vh;display:flex;flex-direction:column;overf
 .sv-mem i{height:14px}.sv-mem .disk em{background:#e7c27d}
 .sv-m{display:flex;flex-wrap:wrap;gap:1.2rem;font-size:.8rem;color:#9fb8a8;min-height:1.2rem}
 .sv-m b{color:#fff;font-family:var(--font-mono)}
+
+/* code browser */
+.lh-tree .codetree{margin-top:.4rem;border-top:1px solid var(--line);padding-top:.3rem}
+.lh-tree .ext{display:inline-block;min-width:2.1rem;text-align:center;font:700 .6rem var(--font-mono);border-radius:3px;padding:.05rem .2rem;background:#eef2ef;color:#56665c}
+.lh-tree .ext.python{background:#e3ecfb;color:#2f6fd6}.lh-tree .ext.yaml{background:#fdeee3;color:#b0561c}.lh-tree .ext.sql{background:#fff3d6;color:#8a6a10}
+.code-title{font-family:var(--font-mono);font-size:1.25rem!important}
+.code-file{background:#0d1f16;border-radius:10px;overflow:auto;max-height:calc(100vh - 230px)}
+.code-file ol{margin:0;padding:.8rem 0;counter-reset:ln;list-style:none;font:12.5px/1.6 var(--font-mono);color:#d4d4d4;min-width:max-content}
+.code-file li{counter-increment:ln;white-space:pre;padding:0 1.2rem 0 0}
+.code-file li::before{content:counter(ln);display:inline-block;width:3.2rem;padding-right:1rem;text-align:right;color:#56705f;user-select:none}
+.code-file li:hover{background:rgba(255,255,255,.04)}
+.lh-tabs .tab-more{font-weight:800;font-size:1rem;color:var(--green);padding:.35rem .8rem;border-radius:6px 6px 0 0}
+.lh-tabs .tab-more:hover{background:#fff;border-color:var(--line)}

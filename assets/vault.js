@@ -97,23 +97,48 @@ JOIN p USING (hk_client)
 LEFT JOIN adv USING (hk_client) LEFT JOIN chv USING (hk_client)`;
 
 // ---- the model diagram ------------------------------------------------------------------------
-function model(lit = new Set()) {
-  const box = (id, x, y, w, label, sub, kind) => `<g class="dvn ${kind} ${lit.has(id) ? "on" : ""}"><rect x="${x}" y="${y}" width="${w}" height="46" rx="8"/><text x="${x + w / 2}" y="${y + 20}" class="t1">${label}</text><text x="${x + w / 2}" y="${y + 35}" class="t2">${sub}</text></g>`;
-  const line = (x1, y1, x2, y2, id) => `<path d="M${x1},${y1} L${x2},${y2}" class="dve ${lit.has(id) ? "on" : ""}"/>`;
-  $("#model").innerHTML = `<svg viewBox="0 0 860 250" role="img" aria-label="Data Vault model">
-    ${line(430, 125, 230, 50, "sat")}${line(430, 125, 430, 50, "sat")}${line(430, 125, 630, 50, "sat")}
-    ${line(430, 125, 230, 205, "link")}${line(430, 125, 630, 205, "link")}
-    ${box("src1", 10, 5, 130, "FNZ platform", "PLT- refs · accounts", "src")}${box("src2", 10, 100, 130, "QFP adviser CRM", "QFP- ids · risk profile", "src")}${box("src3", 10, 195, 130, "Quilter Cheviot", "CHV- refs · mandates", "src")}
-    ${box("sat", 160, 27, 140, "sat_client_platform", "entity · channel · accounts", "sat")}${box("sat", 360, 27, 140, "sat_client_advice", "risk profile · adviser", "sat")}${box("sat", 560, 27, 140, "sat_client_cheviot", "mandate · portfolio manager", "sat")}
-    ${box("hub", 360, 102, 140, "hub_client", "business key: NI number", "hub")}
-    ${box("link", 160, 182, 140, "link_client_adviser", "client ↔ adviser", "link")}${box("link", 560, 182, 140, "link_client_portfolio", "client ↔ Cheviot portfolio", "link")}
-    ${box("mart", 730, 102, 120, "dim_client_360", "Kimball, in gold", "mart")}${line(500, 125, 730, 125, "mart")}
-  </svg><div class="dv-legend"><span class="hub">Hub: one row per business key</span><span class="link">Link: a relationship</span><span class="sat">Satellite: one source's description, with history</span><span class="mart">Mart: what people query</span></div>`;
+// node geometry (centres) for the diagram and the flow animation
+const N = {
+  src1: [75, 28, "FNZ platform", "PLT- refs · accounts", "src", "src_platform"], src2: [75, 123, "QFP adviser CRM", "QFP- ids · risk profile", "src", "src_advice"],
+  src3: [75, 218, "Quilter Cheviot", "CHV- refs · mandates", "src", "src_cheviot"],
+  satp: [230, 50, "sat_client_platform", "entity · channel · accounts", "sat", "sat_client_platform"], sata: [430, 50, "sat_client_advice", "risk profile · adviser", "sat", "sat_client_advice"],
+  satc: [630, 50, "sat_client_cheviot", "mandate · portfolio manager", "sat", "sat_client_cheviot"],
+  hub: [430, 125, "hub_client", "business key: NI number", "hub", "hub_client"],
+  lnka: [230, 205, "link_client_adviser", "client ↔ adviser", "link", "link_client_adviser"], lnkp: [630, 205, "link_client_portfolio", "client ↔ Cheviot portfolio", "link", "link_client_portfolio"],
+  mart: [790, 125, "dim_client_360", "Kimball, in gold", "mart", null],
+};
+const W2 = { src: 65, sat: 70, hub: 70, link: 70, mart: 60 };
+const edgePath = (a, b) => { const [x1, y1, , , k1] = N[a], [x2, y2, , , k2] = N[b];
+  const sx = x1 + (x2 > x1 ? W2[k1] : x2 < x1 ? -W2[k1] : 0), ex = x2 + (x2 > x1 ? -W2[k2] : x2 < x1 ? W2[k2] : 0);
+  const sy = x1 === x2 ? y1 + (y2 > y1 ? 23 : -23) : y1, ey = x1 === x2 ? y2 + (y2 > y1 ? -23 : 23) : y2, m = (sx + ex) / 2;
+  return `M${sx},${sy} C${m},${sy} ${m},${ey} ${ex},${ey}`; };
+const EDGES = [["src1", "hub"], ["src2", "hub"], ["src3", "hub"], ["src1", "satp"], ["src2", "sata"], ["src3", "satc"], ["src2", "lnka"], ["src3", "lnkp"],
+  ["satp", "hub"], ["sata", "hub"], ["satc", "hub"], ["hub", "lnka"], ["hub", "lnkp"], ["hub", "mart"], ["sata", "mart"], ["satc", "mart"]];
+const FLOWS = { src: [], hub: ["src1>hub", "src2>hub", "src3>hub"], link: ["src2>lnka", "src3>lnkp", "hub>lnka", "hub>lnkp"], sat: ["src1>satp", "src2>sata", "src3>satc"],
+  day2: ["src2>sata"], audit: ["sata>hub"], mart: ["hub>mart", "sata>mart", "satc>mart", "satp>hub"] };
+let counts = {}, built = new Set();
+const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function model(lit = new Set(), flows = []) {
+  const fl = new Set(flows);
+  const box = (id) => { const [x, y, label, sub, kind, tbl] = N[id], w = W2[kind] * 2;
+    const c = tbl && counts[tbl] != null ? `${fmt(counts[tbl])} rows` : kind === "mart" && counts.mart != null ? `${fmt(counts.mart)} clients` : sub;
+    const state = lit.has(id) || lit.has(kind) ? "on" : built.has(id) ? "built" : kind === "src" ? "" : "todo";
+    return `<g class="dvn ${kind} ${state}"><rect x="${x - w / 2}" y="${y - 23}" width="${w}" height="46" rx="8"/><text x="${x}" y="${y - 3}" class="t1">${label}</text><text x="${x}" y="${y + 12}" class="t2">${c}</text></g>`; };
+  const edges = EDGES.map(([a, b]) => { const d = edgePath(a, b), on = fl.has(`${a}>${b}`);
+    return `<path d="${d}" class="dve ${on ? "on" : ""}"/>${on && !still ? [0, 0.45, 0.9].map((t) => `<circle r="3.6" class="dvdot"><animateMotion dur="1.35s" begin="-${t}s" repeatCount="indefinite" path="${d}"/></circle>`).join("") : ""}`; }).join("");
+  $("#model").innerHTML = `<svg viewBox="0 0 860 245" role="img" aria-label="Data Vault model">${edges}${Object.keys(N).map(box).join("")}</svg>
+    <div class="dv-legend"><span class="hub">Hub: one row per business key</span><span class="link">Link: a relationship</span><span class="sat">Satellite: one source's description, with history</span><span class="mart">Mart: what people query</span></div>`;
+}
+async function refreshCounts() {
+  for (const t of Object.values(N).map((n) => n[5]).filter(Boolean)) {
+    try { const [r] = await rows(`SELECT count(*) AS n FROM ${t}`); counts[t] = r.n; } catch { /* not built yet */ }
+  }
 }
 
 // ---- the steps ----------------------------------------------------------------------------------
 const STEPS = [
-  { key: "src", lit: ["src1", "src2", "src3"], title: "Three businesses, one client", sub: "Step 1 · Land the sources",
+  { key: "src", lit: ["src"], title: "Three businesses, one client", sub: "Step 1 · Land the sources",
     text: "Each system has its own key: PLT-, QFP- and CHV- references. The only thing they share is the client's NI number, and the CRM stores it typed by hand, in lower case with a space.",
     sql: SOURCES, persona: "pipeline",
     after: async () => { const r = await run(`SELECT 'FNZ platform' AS source, count(*) AS clients, any_value(platform_ref) AS example_key, ${mask("any_value(ni_number)")} AS ni_as_stored FROM src_platform
@@ -142,12 +167,12 @@ const STEPS = [
     text: "There's no meeting to agree whose risk profile is right before loading: each source's description goes into its own satellite, with a hashdiff of its attributes so changes are cheap to spot. The three loads don't depend on each other, so they run in parallel.",
     sql: SATS, parallel: true,
     after: async () => table(await run("SELECT 'sat_client_platform' AS satellite, count(*) AS rows FROM sat_client_platform UNION ALL SELECT 'sat_client_advice', count(*) FROM sat_client_advice UNION ALL SELECT 'sat_client_cheviot', count(*) FROM sat_client_cheviot")) },
-  { key: "day2", lit: ["src2", "sat"], title: "The next day: change arrives", sub: "Step 5 · Load a change, keep the history",
+  { key: "day2", lit: ["src2", "sata"], title: "The next day: change arrives", sub: "Step 5 · Load a change, keep the history",
     text: "The CRM resends everything. Annual reviews changed some risk profiles. The load compares hashdiffs and inserts only real changes. Nothing is updated, nothing is deleted.",
     sql: DAY2,
     after: async () => { const [d] = await rows(`SELECT (SELECT count(*) FROM src_advice_day2) AS arrived, (SELECT count(*) FROM sat_client_advice WHERE load_ts = TIMESTAMP '2026-10-02 05:31') AS inserted`);
       return `<div class="kv"><div><small>Rows arrived</small><b>${fmt(d.arrived)}</b></div><div><small>Inserted (real changes)</small><b>${fmt(d.inserted)}</b></div><div><small>Updated</small><b>0</b></div><div><small>Deleted</small><b>0</b></div></div>`; } },
-  { key: "audit", lit: ["hub", "sat"], title: "An auditor asks", sub: "Step 6 · Answer from history",
+  { key: "audit", lit: ["hub", "sata"], title: "An auditor asks", sub: "Step 6 · Answer from history",
     text: "“What risk profile did we hold for this client on 1 October, and which system told us?” The satellite answers directly, with both versions and their source.",
     sql: `SELECT ${mask("h.bk_ni")} AS client, strftime(s.load_ts, '%Y-%m-%d %H:%M') AS loaded_at, s.risk_profile, s.adviser, s.record_source
 FROM sat_client_advice s JOIN hub_client h USING (hk_client)
@@ -166,7 +191,7 @@ ORDER BY s.load_ts`, query: true },
 async function runStep(i) {
   const s = STEPS[i], card = $(`#st-${i}`), out = $(".dv-out", card), btn = $("button", card);
   btn.disabled = true; out.innerHTML = '<p class="muted">Running…</p>';
-  model(new Set(s.lit));
+  model(new Set(s.lit), FLOWS[s.key]);
   try {
     if (s.parallel) {
       out.innerHTML = `<div class="dv-par">${["sat_client_platform", "sat_client_advice", "sat_client_cheviot"].map((n) => `<div><small>${n}</small><i><em></em></i></div>`).join("")}</div>`;
@@ -178,6 +203,11 @@ async function runStep(i) {
       if (s.persona) await lake.as(s.persona, (l) => l.runSQL(s.sql)); else await run(s.sql);
       out.innerHTML = (s.parallel ? out.innerHTML : "") + await s.after();
     }
+    await refreshCounts();
+    const BUILT = { src: ["src1", "src2", "src3"], hub: ["hub"], link: ["lnka", "lnkp"], sat: ["satp", "sata", "satc"], mart: ["mart"] };
+    (BUILT[s.key] || []).forEach((k) => built.add(k));
+    if (s.key === "mart") { const [m] = await rows(`SELECT count(*) AS n FROM (${PIT("2026-10-02 23:59").replace(/^--[^\n]*\n/, "")})`); counts.mart = m.n; }
+    model(new Set(), []);
     card.classList.add("done"); btn.textContent = "Done ✓";
     $("#prog").innerHTML = STEPS.map((_, k) => `<i class="${$(`#st-${k}`).classList.contains("done") ? "done" : ""}"></i>`).join("");
     if (i + 1 < STEPS.length) { $(`#st-${i + 1}`).hidden = false; } else finish();
@@ -197,16 +227,41 @@ function finish() {
   ]);
 }
 
+/** The SQL behind each build step, for the Live lakehouse code browser. */
+export const VAULT_SQL = { "01_sources.sql": SOURCES, "02_hub_client.sql": HUB, "03_links.sql": LINKS, "04_satellites.sql": SATS, "05_next_day_change.sql": DAY2, "06_pit_dim_client_360.sql": PIT("2026-10-02 23:59") };
+
 /** Mount the whole simulation into `root`; used by the chapter page and the Live lakehouse tab. */
 export function mountVault(root, l) {
   lake = l;
-  root.insertAdjacentHTML("beforeend", `<div class="dv-model card"><span class="step">The model</span><h2>Hubs, links and satellites</h2><div id="model"></div></div>
+  counts = {}; built = new Set();
+  root.insertAdjacentHTML("beforeend", `<div class="dv-model card"><div class="dv-head"><div><span class="step">The model</span><h2>Hubs, links and satellites</h2></div>
+    <button class="btn-run" id="dvplay">▶ Build it</button></div><p class="dv-now" id="dvnow">Press <b>Build it</b> to watch the vault being built on the live lakehouse, or run each step yourself below.</p><div id="model"></div></div>
     <div class="progress" id="prog"></div><div id="steps"></div>`);
   model();
   $("#steps").innerHTML = STEPS.map((s, i) => `<div class="card dv-step" id="st-${i}" ${i ? "hidden" : ""}><span class="step">${esc(s.sub)}</span><h2>${esc(s.title)}</h2><p>${esc(s.text)}</p>
     ${show(s.sql)}<button class="small-btn solid">${s.query ? "Ask the vault" : "Run it"}</button><div class="dv-out"></div></div>`).join("");
   STEPS.forEach((_, i) => $("button", $(`#st-${i}`)).onclick = () => runStep(i));
   $("#prog").innerHTML = STEPS.map(() => "<i></i>").join("");
+  $("#dvplay").onclick = async () => {
+    $("#dvplay").disabled = true;
+    const stage = $("#model").closest(".dv-model");
+    stage.classList.add("sticky");
+    for (let i = 0; i < STEPS.length; i++) {
+      const card = $(`#st-${i}`);
+      if (card.classList.contains("done")) continue;
+      card.hidden = false;
+      card.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "end" });
+      $("#dvnow").innerHTML = `<b>${esc(STEPS[i].sub)}.</b> ${esc(STEPS[i].title)}`;
+      model(new Set(STEPS[i].lit), FLOWS[STEPS[i].key]);
+      await sleep(still ? 200 : 1700);
+      await runStep(i);
+      $("#dvnow").innerHTML = `<b>${esc(STEPS[i].sub)}.</b> ${esc(STEPS[i].title)} · <span class="ok">done</span>`;
+      await sleep(still ? 200 : 900);
+    }
+    stage.classList.remove("sticky");
+    $("#dvnow").innerHTML = `<b>Built.</b> ${fmt(counts.hub_client)} clients in the hub, three satellites with full history, and a Kimball view of ${fmt(counts.mart)} clients for everyone else.`;
+    $("#dvplay").textContent = "Built ✓";
+  };
 }
 
 if (document.body.dataset.page === "vault") {

@@ -150,3 +150,12 @@
 .jd-page .site-header nav a{font-size:.78rem;white-space:nowrap}
 @media (max-width:1500px){.jd-page .site-header nav a:not([aria-current]):not(.nav-code){font-size:0;letter-spacing:0}
   .jd-page .site-header nav a:not([aria-current]):not(.nav-code)::first-letter{font-size:.82rem}}
+
+.dv-head{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.dv-now{margin:.3rem 0 .5rem;padding:.5rem .8rem;background:#f5f8f5;border-radius:6px;font-size:.88rem;min-height:2.2rem}
+.dv-now .ok{color:var(--green);font-weight:800}
+.dv-model.sticky{position:sticky;top:0;z-index:5;box-shadow:0 8px 20px rgba(0,48,26,.12)}
+.dvn.todo rect{fill:#fafbfa;stroke:#d9e1dc;stroke-dasharray:4 3}.dvn.todo text{opacity:.55}
+.dvn.built rect{stroke-width:2}
+.dvdot{fill:var(--green)}
+@media (max-width:900px){.dv-model.sticky{position:static}}
