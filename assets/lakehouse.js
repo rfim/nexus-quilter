@@ -11,6 +11,7 @@
 // browser; it is not Databricks itself.
 import { openLakehouse, PERSONAS } from "./engine.js";
 import { renderArchitecture, renderOrchestration, renderLineage, renderCost } from "./platform.js";
+import { mountVault } from "./vault.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -204,6 +205,10 @@ ready.then(async () => {
     { key: "orch", title: "Orchestration", go: () => renderOrchestration($("#view"), site, lake) },
     { key: "lineage", title: "Lineage & governance", go: () => renderLineage($("#view"), lake) },
     { key: "cost", title: "Cost", go: () => renderCost($("#view"), site) },
+    { key: "vault", title: "Data Vault", go: () => { const v = $("#view");
+      v.innerHTML = `<div class="nb-head"><div><h1>Data Vault: three businesses, one client</h1>
+        <p>Quilter's platform, its advice business and Quilter Cheviot each describe the same client with their own keys. Run each step on the live lakehouse: hubs, links, satellites, a change the next day, an audit question, and a Kimball view on top. The longer story is <a href="vault.html">chapter 9 of How I work</a>.</p></div></div><div class="lh-vault"></div>`;
+      mountVault(v.querySelector(".lh-vault"), lake); } },
   ];
   $("#tabs").innerHTML = `<span class="tab-group">Platform</span>${TOUR.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}
     <span class="tab-group">Notebooks</span>${NOTEBOOKS.map((n) => `<button role="tab" data-key="${n.key}">${esc(n.title)}</button>`).join("")}`;

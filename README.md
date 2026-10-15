@@ -19,7 +19,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 | `databricks.yml` | Asset Bundle for running the same package as a Databricks job. |
 | `index.html`, `assets/` | The static site, published with GitHub Pages. |
 | `simulate.html`, `assets/sim/` | How I work: the start of the story, “How the data gets there” (the ELT run) and chapter 4 (a week with the business). |
-| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html`, `ask.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
+| `design.html`, `release.html`, `review.html`, `oncall.html`, `duty.html`, `streaming.html`, `ask.html`, `vault.html` | Chapters 1–3 and 5–7 of How I work, one per part of the job description, all on the same lakehouse (`assets/engine.js`, `assets/jdkit.js`). |
 | `lakehouse.html`, `assets/lakehouse/` | The lakehouse in the browser: the run's real Delta tables (Parquet + `_delta_log`), replayed client-side. |
 
 ## How I work: lead and serve
@@ -34,6 +34,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **On-call shift** (5 · operational excellence). Live SLO tiles, triage, the planted £250 reconciliation break investigated with three queries, an incident record with time to acknowledge and mitigate, and a volume alert tuned against a year of real daily counts.
 - **Consumer Duty** (regulatory). The analyst can't read the vulnerability flag; the pipeline's service principal publishes an aggregate with a minimum cell size, which shows vulnerable clients waiting about twice as long on transfers out.
 - **Streaming** (batch and real-time). 13,242 events in micro-batches, each a real MERGE, with a watermarked keyed aggregate. With MERGE and no watermark it matches the lakehouse exactly; the other settings show why the certified numbers stay on batch.
+- **Bring it together** (data modelling). A Data Vault over three Quilter businesses that describe the same client (FNZ platform, adviser CRM, Quilter Cheviot): hub on the standardised NI number, links, insert-only satellites with hashdiffs, a next-day change loaded without updates, an audit question answered from history, and a point-in-time Kimball dimension on top. Also a tab in the Live lakehouse.
 - **Let them ask** (self-service and AI). Part 1 builds the semantic layer: three reports give three numbers for net flows, Finance's definition is agreed, written as a metric view, tested live (equals the certified product, grain, ledger) and published with grants and chatbot synonyms. Part 2 is the semantic layer as metric views, and a chat that maps a question to a certified measure, compiles it to SQL, runs it on the lakehouse with the asker's permissions and cites the source. It refuses undefined metrics, personal data and advice. A small rule-based parser stands in for the LLM.
 
 ## The lakehouse in your browser
@@ -44,7 +45,7 @@ The site shows how I'd serve Quilter's Finance, Marketing, HR, Executive and Pro
 - **decodes the Parquet** with [parquet-wasm](https://github.com/kylebarron/parquet-wasm) and runs SQL in [DuckDB-WASM](https://github.com/duckdb/duckdb-wasm). No DuckDB extension is downloaded, so it works on networks that block `extensions.duckdb.org`;
 - **simulates Unity Catalog**: three-level names (`nexus.gold.…`), grants from the department contracts, column masks on personal data, and a row filter on legal entity, depending on the persona you "run as".
 
-Four platform views open it: **Architecture** (the end-to-end flow, animated, with the run's real counts), **Orchestration** (the recorded job run replayed, including a failure and a repair run), **Lineage & governance** (every table's upstream and blast radius, with PII tags and grants for the chosen persona) and **Cost** (the levers and a small estimator). Then five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It reproduces Databricks behaviour in the browser; it is not Databricks itself.
+Four platform views open it: **Architecture** (the end-to-end flow, animated, with the run's real counts), **Orchestration** (the recorded job run replayed, including a failure and a repair run), **Lineage & governance** (every table's upstream and blast radius, with PII tags and grants for the chosen persona) and **Cost** (the levers and a small estimator), plus **Data Vault** (chapter 9, run in place). Then five notebooks walk through it: explore, MERGE and safe replay, time travel (as issued vs now), Unity Catalog permissions, and the contract checks. A Workflows tab replays the recorded task timings. It reproduces Databricks behaviour in the browser; it is not Databricks itself.
 
 ## The last run
 

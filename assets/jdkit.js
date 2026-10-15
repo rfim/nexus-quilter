@@ -16,6 +16,7 @@ export const PAGES = [
   { href: "duty.html", label: "Protect clients", half: "Serve", n: 6, jd: "Regulatory: Consumer Duty" },
   { href: "streaming.html", label: "Keep it live", half: "Serve", n: 7, jd: "Batch and real-time processing" },
   { href: "ask.html", label: "Let them ask", half: "Serve", n: 8, jd: "Self-service: semantic layer and AI" },
+  { href: "vault.html", label: "Bring it together", half: "Lead", n: 9, jd: "Data modelling: Data Vault and Kimball" },
 ];
 
 export function header(current) {

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bring it together · How I work · VIM</title>
+<meta name="description" content="Data Vault for Quilter: three businesses describe the same client; hubs, links and satellites integrate them without forcing early agreement, keep full history, and feed one Kimball view.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css"><link rel="stylesheet" href="assets/sim.css"><link rel="stylesheet" href="assets/jd.css">
+</head>
+<body class="sim jd-page" data-page="vault">
+<main class="shell sim-main">
+  <p class="jd-crumb">How I work</p>
+  <h1>Bring it together</h1>
+  <p class="jd-lede">Quilter's platform, its advice business and Quilter Cheviot each describe the same client in their own system, with their own keys and their own idea of what matters. Here I integrate them with a Data Vault in silver, step by step, on the live lakehouse: hubs for the business key, links for relationships, satellites for each source's view, kept forever. Then a simple Kimball view on top for everyone who just wants the answer.</p>
+  <blockquote class="jd-quote">What the job description asks: <b>“Data modelling approaches such as Kimball, Data Vault and medallion architecture.”</b> Honestly: I've built Kimball and SCD2 in production; Data Vault I know at working level. This is how I would apply it, and where I'd lean on Quilter's architects.</blockquote>
+  <p class="engine-line" id="engine">Starting the lakehouse…</p>
+  <div id="vault"></div>
+</main>
+<script src="assets/hl.js"></script>
+<script type="module" src="assets/vault.js"></script>
+</body>
+</html>

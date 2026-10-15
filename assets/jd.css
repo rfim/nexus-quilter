@@ -122,3 +122,31 @@
 .pub div.on{border:1px solid var(--green);background:#e7f1ea;color:var(--forest);box-shadow:0 0 0 3px rgba(15,123,63,.12)}
 @media (max-width:900px){.rep{grid-template-columns:minmax(0,1fr)}.rep .val{text-align:left}.pub{grid-template-columns:1fr 1fr}}
 .tst.pass,.tst.warn,.tst.fail{color:inherit;font-weight:400}.tst b{font-weight:700}
+/* chapter 9: data vault */
+.dv-model svg{width:100%;height:auto;display:block;min-width:640px}
+.dv-model #model{overflow-x:auto}
+.dvn rect{stroke-width:1.5;transition:all .35s}.dvn text{text-anchor:middle;font-family:var(--font-ui)}
+.dvn .t1{font-size:12px;font-weight:800}.dvn .t2{font-size:9px;fill:#56665c}
+.dvn.hub rect{fill:#e3ecfb;stroke:#2f6fd6}.dvn.link rect{fill:#e3f4ea;stroke:#159847}.dvn.sat rect{fill:#fff6db;stroke:#d9a520}
+.dvn.src rect{fill:#f3f4f2;stroke:#b9c2bc}.dvn.mart rect{fill:#00301a;stroke:#00301a}.dvn.mart .t1{fill:#fff}.dvn.mart .t2{fill:#9be3b5}
+.dvn.on rect{stroke-width:3;filter:drop-shadow(0 0 7px rgba(15,123,63,.45))}
+.dve{stroke:#cfd9d2;stroke-width:2;fill:none}.dve.on{stroke:var(--green);stroke-dasharray:6 5;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-11}}
+.dv-legend{display:flex;flex-wrap:wrap;gap:.9rem;font-size:.78rem;margin-top:.5rem}
+.dv-legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
+.dv-legend .hub::before{background:#2f6fd6}.dv-legend .link::before{background:#159847}.dv-legend .sat::before{background:#d9a520}.dv-legend .mart::before{background:#00301a}
+.dv-sql{margin:.5rem 0;background:#0d1f16;color:#d4d4d4;border-radius:8px;padding:.6rem .8rem;font:11.5px/1.5 var(--font-mono);overflow:auto;white-space:pre;max-height:300px}
+.dv-step .dv-out{margin-top:.6rem;overflow-x:auto}
+.dv-step .dv-out table{border-collapse:collapse;font:12px var(--font-mono);min-width:60%}
+.dv-step .dv-out th,.dv-step .dv-out td{border-bottom:1px solid #eef2ef;padding:.3rem .6rem;text-align:left;white-space:nowrap}
+.dv-step .dv-out th{background:#f1f5f2;font-family:var(--font-ui)}
+.dv-step.done{border-left:4px solid var(--green2)}
+.dv-par{display:grid;gap:.35rem;margin:.4rem 0 .8rem}
+.dv-par div{display:grid;grid-template-columns:11rem 1fr;gap:.6rem;align-items:center;font:11px var(--font-mono)}
+.dv-par i{display:block;height:10px;background:#eef2ef;border-radius:3px;overflow:hidden}.dv-par em{display:block;height:100%;width:0;background:#d9a520}
+/* nine chapters: keep the header on one line */
+.jd-page .site-header .brand{white-space:nowrap;flex:none}
+.jd-page .site-header nav{gap:.15rem 1rem;flex-wrap:nowrap}
+.jd-page .site-header nav a{font-size:.78rem;white-space:nowrap}
+@media (max-width:1500px){.jd-page .site-header nav a:not([aria-current]):not(.nav-code){font-size:0;letter-spacing:0}
+  .jd-page .site-header nav a:not([aria-current]):not(.nav-code)::first-letter{font-size:.82rem}}
