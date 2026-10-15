@@ -230,3 +230,9 @@ body.lh{background:#f4f6f5;height:100vh;display:flex;flex-direction:column;overf
 .code-file li:hover{background:rgba(255,255,255,.04)}
 .lh-tabs .tab-more{font-weight:800;font-size:1rem;color:var(--green);padding:.35rem .8rem;border-radius:6px 6px 0 0}
 .lh-tabs .tab-more:hover{background:#fff;border-color:var(--line)}
+
+.lh-built{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#9be3b5}
+.lh-built .lh-logo{display:inline-flex;background:#fff;border-radius:5px;padding:.12rem .35rem}
+.lh-built img{display:block;height:16px;width:auto}
+.lh-built i{font-style:normal;color:#9be3b5}
+.lh-built b{color:#fff;font-size:.9rem;letter-spacing:0;text-transform:none}
